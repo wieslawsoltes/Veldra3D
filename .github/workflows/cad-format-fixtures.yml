@@ -1,0 +1,42 @@
+name: Prepare native format fixtures
+on:
+  push:
+    branches: [feat/cad-kernel-interchange-drafting]
+    paths: ['.github/workflows/cad-format-fixtures.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fixtures:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Obtain Apache-licensed matching binary and XML archives
+        run: |
+          mkdir -p fixtures/gh2ghx
+          for file in gh2ghx-converter.gh gh2ghx-converter.ghx LICENSE; do
+            curl -fsSL "https://raw.githubusercontent.com/Metallbau-Windeck/gh2ghx-converter/main/$file" -o "fixtures/gh2ghx/$file"
+          done
+          test "$(git hash-object fixtures/gh2ghx/gh2ghx-converter.gh)" = dddbc4873b16abc780908f586bc233ff9d4e2ee4
+          test "$(git hash-object fixtures/gh2ghx/gh2ghx-converter.ghx)" = e15fe9ff0f305d83ecd1c4d46b38e8c9d1a94ad7
+          printf '%s\n' 'Source: Metallbau-Windeck/gh2ghx-converter; Apache-2.0; upstream blobs verified by git hash-object.' > fixtures/gh2ghx/NOTICE
+      - name: Inspect independent public archive SDK availability
+        run: |
+          python3 - <<'PY'
+          import urllib.request,json,zipfile,io,pathlib
+          url='https://api.nuget.org/v3-flatcontainer/grasshopper/index.json'
+          versions=json.load(urllib.request.urlopen(url))['versions']
+          version=next((v for v in reversed(versions) if v.startswith('8.') and '-' not in v),versions[-1])
+          data=urllib.request.urlopen(f'https://api.nuget.org/v3-flatcontainer/grasshopper/{version}/grasshopper.{version}.nupkg').read()
+          with zipfile.ZipFile(io.BytesIO(data)) as z:
+              names=[n for n in z.namelist() if 'GH_IO' in n]
+              pathlib.Path('fixtures/SDK-INVENTORY.txt').write_text('Development-only package '+version+'\n'+'\n'.join(z.namelist()))
+              for n in names:
+                  if n.endswith(('.dll','.xml')):
+                      p=pathlib.Path('fixtures/dev-sdk')/pathlib.Path(n).name;p.parent.mkdir(exist_ok=True);p.write_bytes(z.read(n))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-format-fixtures
+          path: fixtures
+          retention-days: 7
