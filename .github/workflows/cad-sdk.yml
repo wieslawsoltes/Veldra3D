@@ -18,11 +18,11 @@ jobs:
       - name: Install exact kernel packages without lifecycle scripts
         run: |
           mkdir -p .kernel-deps
-          npm install --prefix .kernel-deps --no-audit --no-fund --ignore-scripts --save-exact replicad@0.23.0 replicad-opencascadejs@0.23.0 rhino3dm@8.32.2
-      - name: Package source and public dependency SDK
-        run: tar --exclude=.git -czf "$RUNNER_TEMP/veldra-kernel-sdk.tgz" .
+          npm install --prefix .kernel-deps --no-audit --no-fund --ignore-scripts --save-exact replicad@0.23.0 replicad-opencascadejs@0.23.0 rhino3dm@8.32.2 opencascade.js@1.1.1
+      - name: Package public dependency SDK
+        run: tar -czf "$RUNNER_TEMP/veldra-extended-sdk.tgz" .kernel-deps
       - uses: actions/upload-artifact@v4
         with:
-          name: veldra-kernel-sdk
-          path: ${{ runner.temp }}/veldra-kernel-sdk.tgz
+          name: veldra-extended-sdk
+          path: ${{ runner.temp }}/veldra-extended-sdk.tgz
           retention-days: 7
