@@ -1,9 +1,9 @@
 {
   "name": "veldra-3d",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Independent browser NURBS modeler and visual parametric editor",
+  "description": "Independent browser NURBS modeler, visual parametric editor and CPU/WebGPU final renderer",
   "scripts": {
     "start": "node tools/serve.mjs",
     "test": "node --test tests/*.test.js",

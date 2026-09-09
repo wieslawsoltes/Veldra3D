@@ -19,7 +19,7 @@ defaults:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     permissions:
       contents: write
       pages: write
@@ -30,44 +30,37 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Detect initial asset publication
-        id: assets
-        run: |
-          if git ls-files --error-unmatch dist/Veldra3D.html >/dev/null 2>&1; then
-            echo 'initial=false' >> "$GITHUB_OUTPUT"
-          else
-            echo 'initial=true' >> "$GITHUB_OUTPUT"
-          fi
-      - name: Test geometry, topology, graph and interchange
+      - name: Test geometry, graph, interchange and final-render math
         run: npm test | tee tests/node-test-results.tap
-      - name: Generate editable examples
+      - name: Generate missing editable examples
         run: |
           mkdir -p examples
           if [ ! -f examples/Canopy.veldra ] || [ ! -f examples/Canopy.weave ] || [ ! -f examples/Surface-laboratory.veldra ]; then
             node tools/examples.mjs
           fi
-      - name: Build standalone application
+      - name: Build complete standalone application
         run: npm run build
-      - name: Verify initial standalone matches the delivered application
-        if: steps.assets.outputs.initial == 'true'
-        run: echo '23d1ad9692d6aebeec16a846b3475b77a3d23392cbf4a9b1c6f276f4fa34fb85  dist/Veldra3D.html' | sha256sum --check
       - name: Install development-only browser test tools
         run: |
           python3 -m pip install playwright==1.57.0
           python3 -m playwright install --with-deps chromium
           CHROMIUM=$(python3 -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')
           echo "CHROMIUM=$CHROMIUM" >> "$GITHUB_ENV"
-      - name: Test standalone browser application
+      - name: Test standalone modeling application
         run: |
           python3 tests/browser_smoke.py --chromium "$CHROMIUM" | tee tests/browser-console.txt
           cp tests/browser-results.json tests/browser-standalone-results.json
           cp tests/browser-console.txt tests/browser-standalone-console.txt
+      - name: Test standalone final-render worker lifecycle and real image exports
+        run: |
+          python3 tests/final-render-browser.py --chromium "$CHROMIUM" --screenshot | tee tests/final-render-standalone-console.txt
+          cp tests/final-render-browser-results.json tests/final-render-standalone-results.json
       - name: Stage project-prefixed browser preview
         run: |
           npm run build:pages
           mkdir -p "$RUNNER_TEMP/veldra-preview/Veldra3D"
           cp -R _site/. "$RUNNER_TEMP/veldra-preview/Veldra3D/"
-      - name: Test module application beneath the Pages project prefix
+      - name: Verify project-prefixed modeling, CPU tracing and actual WebGPU compute
         run: |
           python3 -m http.server 8765 --bind 127.0.0.1 --directory "$RUNNER_TEMP/veldra-preview" > "$RUNNER_TEMP/veldra-http.log" 2>&1 &
           SERVER_PID=$!
@@ -77,11 +70,19 @@ jobs:
             sleep 1
           done
           python3 tests/browser_smoke.py --chromium "$CHROMIUM" --url 'http://127.0.0.1:8765/Veldra3D/?fresh' | tee tests/browser-console.txt
+          python3 tests/final-render-browser.py --chromium "$CHROMIUM" --url 'http://127.0.0.1:8765/Veldra3D/?fresh' | tee tests/final-render-module-console.txt
+          cp tests/final-render-browser-results.json tests/final-render-module-results.json
+          python3 tests/final-render-browser.py --chromium "$CHROMIUM" --url 'http://127.0.0.1:8765/Veldra3D/?fresh' --require-webgpu | tee tests/final-render-webgpu-console.txt
+          cp tests/final-render-browser-results.json tests/final-render-webgpu-results.json
       - name: Record reproducible CPU benchmarks
         run: node tools/benchmark.mjs | tee tests/benchmark-console.txt
-      - name: Commit initial generated delivery assets
-        if: steps.assets.outputs.initial == 'true'
+      - name: Commit verified generated distribution, screenshots and reports
         run: |
+          git fetch origin main
+          if [ "$(git rev-parse origin/main)" != "$GITHUB_SHA" ]; then
+            echo 'Source branch advanced concurrently; do not overwrite newer work with generated assets.'
+            exit 0
+          fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add dist examples docs/*.png tests/*.json tests/*console.txt tests/*.tap
@@ -96,7 +97,7 @@ jobs:
           pathlib.Path('CHECKSUMS.sha256').write_text(''.join(lines))
           PY
           git add CHECKSUMS.sha256
-          git diff --cached --quiet || git commit -m 'build: publish verified standalone app, examples, screenshots and test reports'
+          git diff --cached --quiet || git commit -m 'build: refresh verified final-render distribution, images and test evidence'
           git push origin HEAD:main
       - name: Stage final public site with source commit metadata
         run: SOURCE_COMMIT=$(git rev-parse HEAD) npm run build:pages
@@ -114,7 +115,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
-      - name: Preserve verification evidence
+      - name: Preserve verification evidence, including failures
         if: always()
         uses: actions/upload-artifact@v4
         with:

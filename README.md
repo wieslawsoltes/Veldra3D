@@ -1,14 +1,26 @@
 # Veldra 3D + Weave
 
-**An independently implemented browser NURBS modeler and visual parametric workspace.**
+**An independently implemented browser NURBS modeler, visual parametric workspace and final-render studio.**
 
 **[Launch Veldra 3D](https://wieslawsoltes.github.io/Veldra3D/)** · [Standalone HTML](https://wieslawsoltes.github.io/Veldra3D/Veldra3D.html) · [Build and deployment](https://github.com/wieslawsoltes/Veldra3D/actions/workflows/pages.yml)
 
-Veldra uses plain HTML, CSS, JavaScript modules, and original WGSL shaders. There are no runtime frameworks, external fonts, CDNs, cloud services, or package dependencies. The interface combines a command line, modeling toolbars, construction-plane viewports, inspectors, layers, and the dockable Weave node editor.
+Veldra uses plain HTML, CSS, JavaScript modules and original WGSL shaders. There are no runtime frameworks, external fonts, CDNs, cloud services or package dependencies. The interface combines a command line, modeling toolbars, construction-plane viewports, inspectors, layers, the dockable Weave node editor and a separate final-render window.
 
-This is a substantial working **0.1 implementation**, not a screenshot mockup and not a complete production CAD replacement. It does not implement full Rhino/Grasshopper compatibility or load their native document/plugin formats. Exact capabilities, approximations, and remaining boundaries are listed below and in `docs/CAPABILITIES.md`.
+This is a substantial working **0.2 implementation**, not a screenshot mockup and not a complete production CAD replacement. It does not implement full Rhino/Grasshopper compatibility or load their native document/plugin formats. See [CAD capabilities](docs/CAPABILITIES.md) and [final rendering](docs/FINAL-RENDERING.md) for exact capabilities, approximations and remaining boundaries.
 
-![Actual Veldra 3D application workspace](docs/workspace.png)
+![Veldra modeling workspace](docs/workspace.png)
+
+## Final rendering — new in 0.2
+
+Use **Render → Render final image**, press **F9**, or open **Render** at the top right. The old viewport **Rendered** display mode remains raster shading; final rendering is now a separate real progressive path tracer.
+
+The new studio includes resolution and sample presets, configurable bounce depth, WebGPU compute tracing and a real CPU Web Worker fallback, pause/resume/stop/restart, progress, actual backend diagnostics, image comparison and full-resolution exports. Visible document geometry and live Weave previews are rendered without grid, selection or control-point overlays.
+
+Materials include GGX opaque reflection, diffuse transport, smooth dielectric glass/refraction, metallic, roughness, transmission, IOR, emission, bitmap base color and checker patterns. Lighting includes HDR/LDR image environments with importance sampling, a sky environment, sun, point, spot and rectangular lights, emissive objects, soft shadows, and multibounce indirect illumination. Perspective and orthographic cameras support a physical aperture diameter and focus distance. An optional ground plane and transparent camera background are included.
+
+Develop the image with exposure, an ACES-fitted curve or Reinhard tone mapping and optional normal/depth/albedo-guided spatial denoising. Inspect Beauty, Albedo, World normals, Camera depth and Sample count. Save **PNG, JPEG, Radiance HDR, or float32 multilayer OpenEXR**. HDR/EXR retain unfiltered scene-linear data; PNG/JPEG save the developed display pass. Render settings, lights and embedded material textures are saved in `.veldra` files and participate in document history.
+
+[Render controls, architecture, formats, tests and limits](docs/FINAL-RENDERING.md)
 
 ## Run
 
@@ -18,55 +30,54 @@ Use Node.js 20 or newer:
 npm start
 ```
 
-Open `http://localhost:8080` in a browser. No `npm install` is required.
-
-Alternatively, from this directory:
+Open `http://localhost:8080` in a browser. No `npm install` is required. Alternatively:
 
 ```sh
 python3 -m http.server 8080 --bind 127.0.0.1
 ```
 
-The application is static. Any HTTPS static host can serve it without a backend. If port 8080 is occupied, run `PORT=8765 npm start` on macOS/Linux or set the `PORT` environment variable on Windows.
+The application is static. Any HTTPS static host can serve it without a backend. If port 8080 is occupied, set the `PORT` environment variable before `npm start`.
 
-`dist/Veldra3D.html` contains the entire application in one file. It can be served by itself, with no adjacent assets. Direct file opening may select a fallback depending on browser security and graphics support; serving from localhost is recommended.
+`dist/Veldra3D.html` contains the entire application, including the final-render modules and worker kernel, in one file. It can be served without adjacent assets. Direct file opening may select a fallback depending on browser security and graphics support; localhost is recommended.
 
-**WebGPU requires a secure context and an available adapter.** Localhost is treated as potentially trustworthy by browsers. Veldra reports the backend actually initialized: `WebGPU`, `WebGL2 fallback`, or `Software fallback`. The fallback is real depth-buffered rendering, not a static image. Software rendering is intentionally a compatibility/reference path, not a performance substitute for GPU rendering. See the [WebGPU API documentation](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API) and [secure-context documentation](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts).
+**WebGPU requires a secure context and an available adapter.** The viewport reports WebGPU, WebGL2 fallback or software rasterization. The final-render window separately reports WebGPU compute or CPU worker path tracing. CPU final rendering computes real light transport; it is not the reduced-fidelity viewport fallback. Forced WebGPU mode reports an initialization error rather than claiming GPU execution when unavailable. See [WebGPU](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API) and [secure contexts](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts).
 
 ## GitHub Pages
 
-The application is published at **https://wieslawsoltes.github.io/Veldra3D/**. Pushes to `main` run the core tests, build the standalone application, execute the browser integration checks, stage public assets, and deploy the site over HTTPS.
+Pushes to `main` run core tests, build the standalone application, execute modeling and final-render browser checks, stage public assets and deploy the site over HTTPS. A separate forced-WebGPU final-render test records the adapter and requires shader execution; it does not silently skip unsupported adapters.
 
-Run `npm run build:pages` to reproduce the static site in `_site/`. Relative CSS and module paths support the `/Veldra3D/` project prefix. The published `build-info.json` identifies the source commit. See [Publishing](docs/PUBLISHING.md) for deployment details.
+Run `npm run build:pages` to reproduce the static site in `_site/`. Relative paths support the `/Veldra3D/` project prefix. The published `build-info.json` identifies the source commit. Generated distribution files, screenshots and reports are refreshed by the successful workflow without overwriting a concurrently advanced source branch. See [Publishing](docs/PUBLISHING.md).
 
 ## First five minutes
 
-The initial canopy is generated by an eight-component Weave definition, with four editable number sliders. Change **Span**, **Rise**, **Twist**, or **Rib count** in the inspector or graph; the surface and ribs regenerate.
+The initial canopy is generated by an eight-component Weave definition with four editable number sliders. Change **Span**, **Rise**, **Twist** or **Rib count** in the inspector or graph; the surface and ribs regenerate.
 
-Right-drag to orbit, middle-drag or Shift-drag to pan, and scroll to zoom. `Home` frames the model; `F` frames the selection. The four-view button opens Top, Perspective, Front, and Right. Double-click a viewport title to maximize it. Touch supports tap selection, single-finger orbit, and two-finger pan/zoom.
+Right-drag to orbit, middle-drag or Shift-drag to pan, and scroll to zoom. `Home` frames the model; `F` frames the selection. The four-view button opens Top, Perspective, Front and Right. Double-click a viewport title to maximize it. Touch supports tap selection, single-finger orbit and two-finger pan/zoom.
 
-Type `Box 8 6 5` into the command line. With the box selected, type `Move 2 3 4`. Use `Undo` and `Redo`, or their keyboard shortcuts. Numeric commands reject malformed or out-of-range arguments rather than inventing geometry. Commands without arguments open a parameter dialog when appropriate.
+Type `Box 8 6 5` into the command line. With the box selected, type `Move 2 3 4`. Use `Undo` and `Redo`. Numeric commands reject malformed or out-of-range arguments. Commands without arguments open a parameter dialog when appropriate.
 
-Choose a curve tool and click points on the active construction plane. Enter completes a multi-point curve; Escape cancels. While a drawing tool is active, enter exact points as `x,y,z` in the command line. Grid snapping, object snapping, and Ortho can be toggled on the status bar.
+Choose a curve tool and click points on the active construction plane. Enter completes a multi-point curve; Escape cancels. While drawing, enter exact points as `x,y,z`. Grid snapping, object snapping and Ortho are available on the status bar.
 
-Select **Bake geometry** to turn live outputs into independently editable document objects. Baking hides those previews; undo/redo restores both the document and the corresponding preview states. Select the baked NURBS surface, enable **Points**, and drag its control net. The underlying NURBS control points are edited; the display mesh is regenerated.
+Choose **Bake geometry** to turn live outputs into independent editable document objects. Baking hides those previews; undo/redo restores geometry and preview states. Select a baked NURBS surface, enable **Points**, and drag its control net. The underlying control points are edited and the display mesh regenerated.
 
-In Weave, double-click the canvas or select **+ Component**. Add a component, drag its header to arrange it, and drag an output port onto a compatible input. Alt-click an input to disconnect it. Illegal cycles and incompatible ports are rejected. Select a component to edit its unconnected inputs. A paused graph retains its last solution until resumed.
+In Weave, double-click the canvas or choose **+ Component**. Drag node headers and connect compatible ports. Alt-click an input to disconnect it. Illegal cycles and incompatible ports are rejected. Select a component to edit unconnected inputs. A paused graph retains its last solution.
 
-Use **Save** to download a `.veldra` document including the graph. Browser autosave is a convenience, not a backup. Private/restricted browser contexts may deny storage; the UI reports that and file saving remains the intended way to retain work.
+Use **Save** to download a `.veldra` document with the graph, final-render settings, lights and materials. Autosave is a convenience, not a backup. Private contexts or large embedded images may exceed browser storage permissions/quotas; native file saving remains the intended retention path.
 
 ## Implemented scope
 
 | Area | Working capabilities |
 |---|---|
-| Modeling workspace | 104 registered commands; command search; exact numeric arguments; model/parametric workspaces; four cameras; selection and box selection; gumball translation; control-point dragging; undo/redo; copy/paste; arrays; layers; visibility; locking; material properties; light/dark UI |
-| Curves | Rational NURBS evaluation; analytic first derivative; curvature; exact rational circles/arcs; control-point and interpolated curves; polylines; rectangles; ellipses; polygons; helix; exact knot insertion, split, and reversal; adaptive display tessellation; length; sampled closest-point refinement |
-| Surfaces | Rational tensor-product NURBS evaluation and analytic partial derivatives; control-net editing; plane/patch creation; extrusion; loft; revolve; transported-frame sweep; pipe; sampled isocurves |
-| Polygon solids | Box, sphere, cylinder, cone, torus; capped extrusion/pipe; BSP mesh union, difference, intersection; edge conformity repair and output manifold checks; welding; Loop subdivision; mesh sectioning; triangle-BVH picking |
-| Weave | 57 components; typed ports; explicit data trees; flatten/graft/simplify; list operations; longest-list lacing; cycle rejection; dependency ordering; cached incremental recomputation; errors and upstream propagation; live geometry previews; references; baking; save/load; independent graph undo/redo |
-| Rendering | WebGPU indexed batched rasterization, 4× MSAA, depth-tested edges, directional shadow map, GGX-style material shading, analytic grid, zebra/normal modes, visual clipping; a generic WGSL NURBS compute evaluator; WebGL2 and CPU reference fallbacks |
-| Files | Native `.veldra` and `.weave`; OBJ, STL and limited DXF import/export; embedded-buffer glTF 2.0 export; viewport PNG; local autosave |
+| Modeling workspace | 104 modeling commands plus nine final-render commands; search; numeric arguments; four cameras; selection; translation gumball; control-point editing; undo/redo; copy/paste; arrays; layers; visibility; locking; light/dark UI |
+| Curves | Rational NURBS evaluation; analytic derivative; curvature; exact circles/arcs; interpolated curves; polylines, rectangles, ellipses, polygons and helices; knot insertion, split and reversal; adaptive display tessellation; length and sampled closest-point refinement |
+| Surfaces | Rational tensor-product NURBS and analytic partial derivatives; control nets; plane/patch; extrusion; loft; revolve; transported-frame sweep; pipe; sampled isocurves |
+| Polygon solids | Primitives; capped extrusion/pipe; BSP mesh booleans; edge-conformity repair and output manifold checks; welding; Loop subdivision; sections; triangle-BVH picking |
+| Weave | 57 components; typed ports; data trees; list operations; cycle rejection; dependency ordering; cached recomputation; errors and upstream propagation; previews; references; baking; graph persistence and history |
+| Viewport rendering | WebGPU batched rasterization, 4× MSAA, depth-tested edges, directional shadow map, material shading, grid, zebra/normal modes and clipping; generic NURBS compute evaluator; WebGL2 and software fallbacks |
+| Final rendering | Independent CPU/WebGPU path tracers, multibounce lighting, MIS, glass/reflection, editable lights and materials, HDR environments, depth of field, ground, progressive jobs, development controls, AOVs and real image export |
+| Files | `.veldra` and `.weave`; OBJ, STL and limited DXF import/export; embedded-buffer glTF export; viewport PNG; final PNG/JPEG/HDR/EXR; local autosave |
 
-The component list is in `docs/COMPONENTS.md`. Detailed exact-versus-approximate distinctions are in `docs/CAPABILITIES.md`.
+Component and command inventories for the original modeling workspace are in [Components](docs/COMPONENTS.md) and [Commands](docs/COMMANDS.md). Final-render commands and controls are documented separately in [Final rendering](docs/FINAL-RENDERING.md).
 
 ## Verification
 
@@ -74,52 +85,44 @@ The component list is in `docs/COMPONENTS.md`. Detailed exact-versus-approximate
 npm test
 npm run build
 node tools/benchmark.mjs
+python3 tests/browser_smoke.py --chromium /path/to/chromium
+python3 tests/final-render-browser.py --chromium /path/to/chromium
 ```
 
-The original delivered run has **74 passing Node tests** and **22 passing browser integration checks**, with no uncaught JavaScript or console errors. Tests cover geometric invariants, rational curves, derivatives, splitting, topology, analytic Boolean volumes, graph lacing/caching/errors, undo/redo, input validation, and file round-trips. Browser checks exercise the real UI, live parameter changes, exact commands, baking, control-point pointer dragging, port wiring, themes, and mobile layout. The Pages workflow reruns these checks; its artifacts record the environment and rendering backend actually used in each run.
+The final-render implementation's local run passed **94 Node tests**, **22 existing modeling browser checks** and **19 final-render checks with real CPU workers**. The latter exercises actual radiance/AOV buffers, UI responsiveness, material and light persistence, EXR downloads, pause/resume/cancel, restart and mobile layout. No uncaught JavaScript or console errors were recorded.
 
-**Important graphics qualification:** the managed Chromium available during the original build exposed neither WebGPU nor WebGL2. That browser integration run used the application's explicitly labeled **software fallback**. Native WebGPU shader compilation, driver behavior, and hardware frame rate were **not** verified in that browser. Do not interpret passing core/browser tests as passing GPU conformance tests.
-
-A separate real-GPU verification page is included. Serve the project, then open:
-
-```text
-http://localhost:8080/tests/gpu.html
-```
-
-It submits the actual raster/shadow/grid/line pipelines, runs the NURBS compute shader, and compares returned points against the CPU evaluator. Unsupported environments report **skipped**, not passed.
-
-Optional Playwright integration checks:
+The local test browser did not expose WebGPU in its permitted origin. Those local passes therefore do **not** certify GPU execution. CI separately runs the final-render checks on a secure local URL with forced WebGPU and records the actual adapter. Consult its current result and artifacts for GPU verification; software-adapter execution does not establish discrete-GPU performance. The Node WGSL structure check is not a shader compiler test.
 
 ```sh
-python tests/browser_smoke.py --chromium /path/to/chromium --url http://localhost:8080
+python3 tests/final-render-browser.py --chromium /path/to/chromium --url http://localhost:8080/ --require-webgpu
 ```
 
-Playwright and a Chromium browser are development-only tools, not app dependencies. Without `--url`, the test loads the standalone file into an opaque document, useful for restricted test runners but not a secure-origin WebGPU test.
-
-Recorded results and environment details: `tests/node-test-results.tap`, `tests/browser-results.json`, and `tests/benchmark-results.json`. CPU timings are environment-specific and are not GPU frame-rate claims. See `docs/TESTING.md` for the original verification record and reproduction instructions.
+For the original viewport and NURBS GPU evaluator, serve and open `tests/gpu.html`. Unsupported environments report skipped, not passed. Playwright and Chromium are development-only dependencies. Workflow artifacts preserve separate standalone, module, CPU and WebGPU results. See [Testing](docs/TESTING.md) for the original 0.1 record and [Final rendering](docs/FINAL-RENDERING.md) for 0.2 tests and qualifications.
 
 ## Source layout
 
 ```text
-src/core/       Math, NURBS, meshes, booleans, BVH, document, graph, I/O, validation
-src/render/     Camera, WebGPU/WebGL renderer, CPU reference rasterizer, WGSL/GLSL
-src/ui/         Command registry, dialogs, menus, graph interaction
-src/app.js      Application integration, editing, inspectors, persistence
-styles.css     Responsive light/dark application chrome
-examples/      Editable native model and graph examples
-tests/         Core invariants, browser checks, native WebGPU verification
-tools/         Dependency-free server, bundler, benchmarks, example generator
-dist/          Single-file application
+src/core/           Math, NURBS, meshes, booleans, BVH, document, graph, I/O
+src/render/         Viewport cameras, raster backends and shader modules
+src/render/final-*  Scene compiler, CPU kernel, WGSL, jobs, images and render UI
+src/ui/             Modeling commands, dialogs, menus and graph interaction
+src/app.js          Modeling integration, editing, inspectors and persistence
+examples/           Editable native models and graphs
+tests/              Geometry, rendering, browser integration and GPU checks
+tools/              Static server, bundler, Pages staging, benchmarks
+dist/               Complete standalone HTML application
 ```
 
-See `docs/ARCHITECTURE.md` for algorithms, ownership, numerical policy, history, and extension points.
+The final-render UI installs through a separate module and uses the existing document, geometry and command APIs. Both entry modules are included in the standalone bundler. See [Architecture](docs/ARCHITECTURE.md) and the new [rendering architecture](docs/FINAL-RENDERING.md).
 
-## Not implemented / not claimed
+## Boundaries
 
-General trimmed-surface B-rep topology, robust analytic surface intersections and B-rep booleans, production fillet/blend/chamfer solvers, universal offset/join/trim operations, exact surface-area/volume integration, a subdivision-surface CAD kernel, drafting layouts and dimensions, bitmap/PBR texture workflows, path tracing, plugin scripting/runtime compatibility, native `.3dm`/`.gh`/`.ghx`, STEP/IGES, and fabrication/manufacturing modules are not implemented.
+General trimmed B-rep topology, robust analytic surface intersections/booleans, production fillet/blend/chamfer solvers, universal offset/join/trim operations, exact surface integration, drafting layouts and dimensions, native `.3dm`/`.gh`/`.ghx`, STEP/IGES, plugin runtime compatibility and manufacturing modules remain absent.
 
-Heavy geometry and graph evaluation currently run synchronously on the main thread. Extremely large models can stall interaction. The CPU renderer has intentionally reduced fidelity/performance. Mesh booleans use tessellated solids and floating-point tolerances, not a general exact B-rep kernel. No broad real-world CAD regression corpus or independent production certification has been run.
+Final rendering now exists, but it is not a complete production-renderer replacement. Volumes, subsurface scattering, hair, motion blur, rough dielectric transmission, full UV/PBR map authoring, normal/displacement mapping, material node graphs, distributed rendering and compressed/multipart EXR are not implemented. See the detailed limits rather than assuming feature parity from the UI.
+
+Heavy geometry/graph evaluation, final tessellation and BVH construction remain synchronous on the main thread. Tracing itself runs on WebGPU or actual CPU workers. Final geometry is limited to 500,000 triangles and output to 8,388,608 pixels, subject to adapter/memory limits. Mesh booleans operate on tessellated solids, not a general exact B-rep kernel. No broad production certification is claimed.
 
 ## License
 
-MIT. Original Veldra code and artwork are included. No proprietary application code, native plugin binaries, copied icons, or bundled font files are used. Product names mentioned for comparison remain the property of their respective owners; this project is independent and unaffiliated.
+MIT. The original implementation adds no proprietary code, plugin binaries, copied icons or bundled font files. Product names mentioned for comparison remain the property of their respective owners; this project is independent and unaffiliated.
