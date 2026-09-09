@@ -14,7 +14,7 @@ export const MATERIAL_PRESETS={
   Emissive:{color:'#fff0d9',metallic:0,roughness:.4,transmission:0,ior:1.5,emission:8}
 };
 export function linear(v){return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;}
-export function linearColor(s){return hexRGB(/^#[0-9a-f]{6}$/i.test(s??'')?s:'#ffffff').map(linear);}
+export function linearColor(s){if(/^#[0-9a-f]{3}$/i.test(s??''))s='#'+s.slice(1).split('').map(c=>c+c).join('');return hexRGB(/^#[0-9a-f]{6}$/i.test(s??'')?s:'#ffffff').map(linear);}
 const num=(v,d,min,max)=>Number.isFinite(Number(v))?Math.min(max,Math.max(min,Number(v))):d;
 export function renderSettings(value={}){
   const s={...structuredClone(FINAL_DEFAULTS),...value};
@@ -22,7 +22,13 @@ export function renderSettings(value={}){
   if(s.width*s.height>8388608)throw Error('Render resolution exceeds the 8,388,608-pixel memory budget (4K UHD is supported).');
   for(const [k,min,max] of [['quality',.25,4],['exposure',-16,16],['environmentStrength',0,100],['environmentRotation',-360,360],['aperture',0,1000],['focusDistance',.001,1e8],['fireflyClamp',0,1e6],['groundZ',-1e8,1e8]])s[k]=num(s[k],FINAL_DEFAULTS[k],min,max);
   s.backend=['auto','webgpu','cpu'].includes(s.backend)?s.backend:'auto';
-  s.lights=Array.isArray(s.lights)?s.lights.slice(0,64):structuredClone(FINAL_DEFAULTS.lights);
+  // Imported document extras are untrusted. Normalize before displaying attributes or compiling buffers.
+  const vector=(value,fallback)=>Array.from({length:3},(_,i)=>num(value?.[i],fallback[i],-1e8,1e8));
+  s.lights=(Array.isArray(s.lights)?s.lights:FINAL_DEFAULTS.lights).filter(l=>l&&typeof l==='object').slice(0,64).map(l=>({
+    type:['area','point','spot','sun'].includes(l.type)?l.type:'point',name:String(l.name??l.type??'Light').slice(0,256),enabled:l.enabled!==false,
+    position:vector(l.position,[0,0,20]),direction:vector(l.direction,l.type==='sun'?[-1,-1,2]:[0,0,-1]),
+    color:/^#[0-9a-f]{6}$/i.test(l.color??'')?l.color:'#ffffff',power:num(l.power,1,0,1e9),width:num(l.width,10,.001,1e6),height:num(l.height,10,.001,1e6),angle:num(l.angle,1,0,45),cone:num(l.cone,45,1,179)
+  }));
   for(const k of ['ground','denoise','transparent','includePreviews'])s[k]=!!s[k];
   return s;
 }
