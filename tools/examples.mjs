@@ -1,0 +1,10 @@
+import fs from 'node:fs';
+import {Document} from '../src/core/document.js';
+import {Graph} from '../src/core/graph.js';
+import {COMPONENTS,createDemoGraph} from '../src/core/components.js';
+import {M} from '../src/core/math.js';
+import {circleCurve,loftSurface,polyline,revolveSurface} from '../src/core/geometry.js';
+const save=(name,data)=>fs.writeFileSync(new URL('../examples/'+name,import.meta.url),JSON.stringify(data,null,2));
+let d=new Document(),g=new Graph(COMPONENTS);d.name='Canopy study';d.add({kind:'box',width:34,depth:18,height:.3},'Exhibition plinth',{matrix:M.translation([0,0,-.32]),color:'#c9cfcc'});createDemoGraph(g);d.extra.graph=g.serialize();save('Canopy.veldra',d.serialize());save('Canopy.weave',g.serialize());
+d=new Document();d.name='Surface laboratory';let curves=[0,4,9].map((z,i)=>circleCurve([i-1,0,z],4-i*.65));curves.forEach((c,i)=>d.add(c.toJSON(),'Loft section '+(i+1),{color:'#c78e4b'}));d.add(loftSurface(curves).toJSON(),'Rational loft',{color:'#78a291'});let profile=polyline([[2,0,0],[3.5,0,1],[2,0,3],[3,0,5]]);d.add(revolveSurface(profile).toJSON(),'Revolved form',{matrix:M.translation([12,0,0]),color:'#90aabd'});save('Surface-laboratory.veldra',d.serialize());
+console.log('Wrote three editable examples.');
