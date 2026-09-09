@@ -1,7 +1,7 @@
 PASS render window and Render menu installed 
-PASS final render completes all samples {'state': 'completed', 'backend': 'WebGPU compute path tracer', 'errors': [], 'adapter': {'vendor': 'google', 'architecture': 'swiftshader', 'device': '', 'description': ''}, 'samples': 4, 'ticks': 177}
+PASS final render completes all samples {'state': 'completed', 'backend': 'WebGPU compute path tracer', 'errors': [], 'adapter': {'vendor': 'google', 'architecture': 'swiftshader', 'device': '', 'description': ''}, 'samples': 4, 'ticks': 117}
 PASS requested engine executes 
-PASS main thread remains responsive during tracing 177
+PASS main thread remains responsive during tracing 117
 PASS radiance, AOVs and sample counts are real {'width': 96, 'height': 64, 'finite': True, 'minSamples': 4, 'energy': 43263.80832541222, 'surfacePixels': 6099}
 PASS AOV selector changes displayed pass 
 PASS exposure preserves accumulated render 
