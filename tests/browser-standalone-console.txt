@@ -1,0 +1,22 @@
+PASS initial scene has real geometry and valid graph {'backend': 'WebGL2 fallback', 'secure': False, 'gpuExposed': False, 'triangles': 12192, 'components': 57, 'commands': 104, 'viewport': [1600, 1050], 'userAgent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36'}
+PASS live slider edits regenerate surface geometry {'before': -14, 'after': -14.1}
+PASS numeric modeling command creates editable box 
+PASS exact transform updates model 
+PASS document undo restores transform 
+PASS document redo reapplies transform 
+PASS baking creates editable surface and hides live outputs 
+PASS bake undo restores both graph previews and document 
+PASS bake redo restores both graph previews and document 
+PASS NURBS control net exposes editable handles 
+PASS pointer drag modifies actual NURBS control point {'before': [-14.1, -6.5, -0.6849762493488669], 'after': [-12.80035053768402, -4.620738077629927, 1.0811022009356612]}
+PASS control-point editing is undoable 
+PASS four cameras render in separate viewports 
+PASS native file import restores graph and exact model 
+PASS component library creates an implemented node 
+PASS dragging graph ports makes a live typed connection 
+PASS connected component executes its algorithm 
+PASS dark theme toggles workspace 
+PASS invalid native import is atomic 
+PASS mobile layout stays within viewport width 
+PASS no uncaught JavaScript errors 
+PASS no renderer-reported errors 

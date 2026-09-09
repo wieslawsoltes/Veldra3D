@@ -1,0 +1,160 @@
+{
+  "format": "weave",
+  "version": 1,
+  "nodes": [
+    {
+      "id": "n_74f8ec95-7100-46",
+      "type": "number",
+      "x": 40,
+      "y": 55,
+      "params": {
+        "value": 28,
+        "min": 12,
+        "max": 42,
+        "step": 0.1
+      },
+      "preview": false,
+      "revision": 0,
+      "label": "Span"
+    },
+    {
+      "id": "n_2f2f9c5a-ffaa-49",
+      "type": "number",
+      "x": 40,
+      "y": 145,
+      "params": {
+        "value": 11,
+        "min": 3,
+        "max": 20,
+        "step": 0.1
+      },
+      "preview": false,
+      "revision": 0,
+      "label": "Rise"
+    },
+    {
+      "id": "n_4f0f60b2-2ff6-43",
+      "type": "number",
+      "x": 40,
+      "y": 235,
+      "params": {
+        "value": 5,
+        "min": -12,
+        "max": 12,
+        "step": 0.1
+      },
+      "preview": false,
+      "revision": 0,
+      "label": "Twist"
+    },
+    {
+      "id": "n_e41197cd-7763-48",
+      "type": "canopy",
+      "x": 320,
+      "y": 96,
+      "params": {},
+      "preview": true,
+      "revision": 3,
+      "label": "Canopy surface"
+    },
+    {
+      "id": "n_da089ff8-5a6a-49",
+      "type": "number",
+      "x": 320,
+      "y": 295,
+      "params": {
+        "value": 36,
+        "min": 8,
+        "max": 80,
+        "step": 1
+      },
+      "preview": false,
+      "revision": 0,
+      "label": "Rib count"
+    },
+    {
+      "id": "n_1bbc3043-cc4f-48",
+      "type": "ribs",
+      "x": 615,
+      "y": 120,
+      "params": {
+        "radius": 0.065
+      },
+      "preview": true,
+      "revision": 2,
+      "label": "Surface ribs"
+    },
+    {
+      "id": "n_69154182-717c-4a",
+      "type": "area",
+      "x": 875,
+      "y": 102,
+      "params": {},
+      "preview": false,
+      "revision": 1,
+      "label": "Area / volume"
+    },
+    {
+      "id": "n_a5433c21-dc16-4a",
+      "type": "panel",
+      "x": 1100,
+      "y": 100,
+      "params": {},
+      "preview": false,
+      "revision": 1,
+      "label": "Panel"
+    }
+  ],
+  "wires": [
+    {
+      "id": "w_f41bd21e-cd8e-48",
+      "from": "n_74f8ec95-7100-46",
+      "output": 0,
+      "to": "n_e41197cd-7763-48",
+      "input": 0
+    },
+    {
+      "id": "w_8919ebf0-7f86-4f",
+      "from": "n_2f2f9c5a-ffaa-49",
+      "output": 0,
+      "to": "n_e41197cd-7763-48",
+      "input": 1
+    },
+    {
+      "id": "w_f91133e9-18b6-4b",
+      "from": "n_4f0f60b2-2ff6-43",
+      "output": 0,
+      "to": "n_e41197cd-7763-48",
+      "input": 2
+    },
+    {
+      "id": "w_468f0c06-8bdc-42",
+      "from": "n_e41197cd-7763-48",
+      "output": 0,
+      "to": "n_1bbc3043-cc4f-48",
+      "input": 0
+    },
+    {
+      "id": "w_5ae78ce7-fbd4-45",
+      "from": "n_da089ff8-5a6a-49",
+      "output": 0,
+      "to": "n_1bbc3043-cc4f-48",
+      "input": 1
+    },
+    {
+      "id": "w_673f8adf-543e-4b",
+      "from": "n_e41197cd-7763-48",
+      "output": 0,
+      "to": "n_69154182-717c-4a",
+      "input": 0
+    },
+    {
+      "id": "w_9cb19656-571e-4a",
+      "from": "n_69154182-717c-4a",
+      "output": 0,
+      "to": "n_a5433c21-dc16-4a",
+      "input": 0
+    }
+  ],
+  "enabled": true
+}

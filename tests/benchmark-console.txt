@@ -1,0 +1,44 @@
+{
+  "timestampUTC": "2026-09-09T10:33:40.344Z",
+  "runtime": "v22.23.2",
+  "platform": "linux",
+  "cpu": "AMD EPYC 7763 64-Core Processor",
+  "notes": "Warm CPU timings in this container. Not GPU timings, not frame rates, and not a guarantee on other hardware. Browser graph time additionally includes browser/JIT overhead. No external runtime dependencies.",
+  "results": [
+    {
+      "name": "CPU NURBS surface tessellation: 96 × 64 cells (12,288 triangles)",
+      "iterations": 15,
+      "medianMs": 9.967434999999966,
+      "minMs": 9.164622000000008,
+      "maxMs": 20.33234299999998
+    },
+    {
+      "name": "Exact rational circle: 1,001 point evaluations",
+      "iterations": 15,
+      "medianMs": 1.300803999999971,
+      "minMs": 0.6503669999999602,
+      "maxMs": 3.016926000000012
+    },
+    {
+      "name": "Incremental graph solve: no changed input",
+      "iterations": 50,
+      "medianMs": 0.013084999999989577,
+      "minMs": 0.012903999999991811,
+      "maxMs": 0.04295100000001639
+    },
+    {
+      "name": "Graph update: canopy + 36 ribs + mesh area",
+      "iterations": 10,
+      "medianMs": 31.870064999999954,
+      "minMs": 31.144427999999948,
+      "maxMs": 39.31478900000002
+    },
+    {
+      "name": "Closed overlapping-box mesh Boolean union",
+      "iterations": 10,
+      "medianMs": 3.598703999999998,
+      "minMs": 2.23604499999999,
+      "maxMs": 4.087910999999963
+    }
+  ]
+}

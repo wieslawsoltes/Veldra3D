@@ -1,0 +1,167 @@
+{
+  "checks": [
+    {
+      "name": "initial scene has real geometry and valid graph",
+      "passed": true,
+      "detail": {
+        "backend": "WebGL2 fallback",
+        "secure": false,
+        "gpuExposed": false,
+        "triangles": 12192,
+        "components": 57,
+        "commands": 104,
+        "viewport": [
+          1600,
+          1050
+        ],
+        "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36"
+      }
+    },
+    {
+      "name": "live slider edits regenerate surface geometry",
+      "passed": true,
+      "detail": {
+        "before": -14,
+        "after": -14.1
+      }
+    },
+    {
+      "name": "numeric modeling command creates editable box",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exact transform updates model",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "document undo restores transform",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "document redo reapplies transform",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "baking creates editable surface and hides live outputs",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "bake undo restores both graph previews and document",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "bake redo restores both graph previews and document",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "NURBS control net exposes editable handles",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "pointer drag modifies actual NURBS control point",
+      "passed": true,
+      "detail": {
+        "before": [
+          -14.1,
+          -6.5,
+          -0.6849762493488669
+        ],
+        "after": [
+          -12.80035053768402,
+          -4.620738077629927,
+          1.0811022009356612
+        ]
+      }
+    },
+    {
+      "name": "control-point editing is undoable",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "four cameras render in separate viewports",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "native file import restores graph and exact model",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "component library creates an implemented node",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dragging graph ports makes a live typed connection",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "connected component executes its algorithm",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dark theme toggles workspace",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "invalid native import is atomic",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "mobile layout stays within viewport width",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "no uncaught JavaScript errors",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "no renderer-reported errors",
+      "passed": true,
+      "detail": null
+    }
+  ],
+  "pageErrors": [],
+  "consoleErrors": [],
+  "warnings": [
+    "Autosave recovery SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.\n    at <anonymous>:1114:49\n    at <anonymous>:1117:3",
+    "Veldra renderer: WebGPU is unavailable in this browser",
+    "[GroupMarkerNotSet(crbug.com/242999)!:A0501800F4010000]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.",
+    "[.WebGL-0x299400109000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0x299400109000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0x299400109000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0x299400109000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
+  ],
+  "navigation": "standalone set_content (opaque origin)",
+  "environment": {
+    "backend": "WebGL2 fallback",
+    "secure": false,
+    "gpuExposed": false,
+    "triangles": 12192,
+    "components": 57,
+    "commands": 104,
+    "viewport": [
+      1600,
+      1050
+    ],
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36"
+  },
+  "nativeWebGPU": "not exercised: unavailable in this browser",
+  "passed": true
+}
