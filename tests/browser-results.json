@@ -9,7 +9,7 @@
         "gpuExposed": true,
         "triangles": 12192,
         "components": 57,
-        "commands": 104,
+        "commands": 113,
         "viewport": [
           1600,
           1050
@@ -142,11 +142,11 @@
   "warnings": [
     "Failed to create WebGPU Context Provider",
     "Veldra renderer: No WebGPU adapter",
-    "[GroupMarkerNotSet(crbug.com/242999)!:A0201800AC300000]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.",
-    "[.WebGL-0x382c00152200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-    "[.WebGL-0x382c00152200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-    "[.WebGL-0x382c00152200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-    "[.WebGL-0x382c00152200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
+    "[GroupMarkerNotSet(crbug.com/242999)!:A05018002C1C0000]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.",
+    "[.WebGL-0x10d400131a00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0x10d400131a00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0x10d400131a00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0x10d400131a00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
   ],
   "navigation": "http://127.0.0.1:8765/Veldra3D/?fresh",
   "environment": {
@@ -155,7 +155,7 @@
     "gpuExposed": true,
     "triangles": 12192,
     "components": 57,
-    "commands": 104,
+    "commands": 113,
     "viewport": [
       1600,
       1050

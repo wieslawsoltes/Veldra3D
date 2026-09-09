@@ -1182,5 +1182,523 @@ const app=new VeldraApp();window.veldra=app;app.start().catch(e=>console.error('
 
 return {};
 })();
+__modules["src/render/final-kernel.js"]=(()=>{
+
+/** Self-contained reference path tracer; the same function is serialized into real Web Workers.
+ * Geometry and material layouts are shared with final-wgsl.js. No DOM, random global state or imports.
+ */
+function createTraceKernel(scene,camera,settings){
+  const T=scene.triangles,N=scene.nodes,M=scene.materials,L=scene.lights,X=scene.texels,PI=Math.PI,eps=scene.epsilon,lightCount=L.length/16;
+  const add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]],sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],mul=(a,b)=>[a[0]*b,a[1]*b,a[2]*b],times=(a,b)=>[a[0]*b[0],a[1]*b[1],a[2]*b[2]],dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],unit=a=>mul(a,1/Math.max(1e-30,Math.sqrt(dot(a,a)))),v=(a,k)=>[a[k],a[k+1],a[k+2]],clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),mix=(a,b,t)=>add(mul(a,1-t),mul(b,t)),reflect=(d,n)=>sub(d,mul(n,2*dot(d,n))),power=(a,b)=>a*a/Math.max(1e-30,a*a+b*b);
+  let state=1;
+  function random(){state^=state<<13;state^=state>>>17;state^=state<<5;return (state>>>0)/4294967296;}
+  function local(n,x,y,z){const t=unit(cross(Math.abs(n[2])<.999?[0,0,1]:[0,1,0],n)),b=cross(n,t);return add(add(mul(t,x),mul(b,y)),mul(n,z));}
+  function box(o,d,k,max){let lo=0,hi=max;for(let a=0;a<3;a++){if(Math.abs(d[a])<1e-20){if(o[a]<N[k+a]||o[a]>N[k+4+a])return false;}else{const t=(N[k+a]-o[a])/d[a],u=(N[k+4+a]-o[a])/d[a];lo=Math.max(lo,Math.min(t,u));hi=Math.min(hi,Math.max(t,u));if(hi<lo)return false;}}return true;}
+  function trace(o,d,max=1e30,shadow=false){let closest=max,result=null,stack=[0];
+    while(stack.length){const node=stack.pop()*8;if(!box(o,d,node,closest))continue;const first=N[node+3],count=N[node+7];if(first>=0){stack.push(count,first);continue;}
+      for(let i=-first-1;i<-first-1+count;i++){const k=i*24,e1=v(T,k+4),e2=v(T,k+8),p=cross(d,e2),det=dot(e1,p);if(Math.abs(det)<1e-16)continue;const q=sub(o,v(T,k)),u=dot(q,p)/det;if(u<0||u>1)continue;const r=cross(q,e1),w=dot(d,r)/det;if(w<0||u+w>1)continue;const t=dot(e2,r)/det;if(t<=eps||t>=closest)continue;if(shadow)return {t};closest=t;result={t,u,v:w,id:i};}
+    }return result;
+  }
+  function surface(hit,o,d){const k=hit.id*24,gn=unit(cross(v(T,k+4),v(T,k+8))),front=dot(gn,d)<0,g=front?gn:mul(gn,-1);let n=unit(add(add(mul(v(T,k+12),1-hit.u-hit.v),mul(v(T,k+16),hit.u)),mul(v(T,k+20),hit.v)));if(dot(n,g)<0)n=mul(n,-1);if(dot(n,d)>-.001)n=g;return {...hit,p:add(o,mul(d,hit.t)),gn:g,n,front,mat:T[k+3]*20};}
+  function texel(offset,w,h,u,vv){u=u-Math.floor(u);vv=vv-Math.floor(vv);const xx=u*w-.5,yy=vv*h-.5,x=Math.floor(xx),y=Math.floor(yy),fx=xx-x,fy=yy-y;
+    const sample=(a,b)=>v(X,(offset+((b%h+h)%h)*w+(a%w+w)%w)*4);return mix(mix(sample(x,y),sample(x+1,y),fx),mix(sample(x,y+1),sample(x+1,y+1),fx),fy);}
+  function color(h){const m=h.mat,scale=M[m+15],n=h.gn;let u,vv;if(Math.abs(n[2])>=Math.max(Math.abs(n[0]),Math.abs(n[1]))){[u,vv]=h.p;}else if(Math.abs(n[0])>=Math.abs(n[1])){[u,vv]=[h.p[1],h.p[2]];}else{[u,vv]=[h.p[0],h.p[2]];}const a=M[m+19],x=(u*Math.cos(a)-vv*Math.sin(a))/scale,y=(u*Math.sin(a)+vv*Math.cos(a))/scale;
+    let c=v(M,m);if(M[m+11]===1&&(Math.floor(x)+Math.floor(y))%2!==0)c=v(M,m+16);if(M[m+12]>=0)c=times(c,texel(M[m+12],M[m+13],M[m+14],x,y));return c;}
+  function environment(d){const e=scene.environment;if(e[0]>=0){const u=(Math.atan2(d[1],d[0])-e[3])/(2*PI)+.5,theta=Math.acos(clamp(d[2],-1,1)),w=e[1],h=e[2],x=Math.min(w-1,Math.floor((u-Math.floor(u))*w)),y=Math.min(h-1,Math.floor(theta/PI*h)),index=e[0]+y*w+x,cdf=X[index*4+3],prev=index===e[0]?0:X[(index-1)*4+3],solid=2*PI/w*(Math.cos(PI*y/h)-Math.cos(PI*(y+1)/h));return {c:mul(v(X,index*4),scene.intensity),pdf:(cdf-prev)/Math.max(1e-20,solid)};}
+    const t=clamp(d[2]*.5+.5,0,1);return {c:mul(mix(mul(scene.sky,.18),scene.sky,Math.sqrt(t)),scene.intensity),pdf:1/(4*PI)};
+  }
+  function sampleEnvironment(){const e=scene.environment;if(e[0]>=0){let lo=0,hi=e[1]*e[2]-1,r=random();while(lo<hi){const mid=(lo+hi)>>1;if(X[(e[0]+mid)*4+3]<r)lo=mid+1;else hi=mid;}const x=lo%e[1],y=Math.floor(lo/e[1]),phi=((x+random())/e[1]-.5)*2*PI+e[3];
+      const q=random(),cz=(1-q)*Math.cos(PI*y/e[2])+q*Math.cos(PI*(y+1)/e[2]),s=Math.sqrt(Math.max(0,1-cz*cz));return [s*Math.cos(phi),s*Math.sin(phi),cz];}
+    const z=1-2*random(),phi=2*PI*random(),s=Math.sqrt(Math.max(0,1-z*z));return [s*Math.cos(phi),s*Math.sin(phi),z];}
+  function bsdf(h,base,wo,wi){const m=h.mat,n=h.n,nv=dot(n,wo),nl=dot(n,wi);if(nv<=0||nl<=0)return {f:[0,0,0],pdf:0};const half=unit(add(wo,wi)),nh=clamp(dot(n,half),0,1),vh=clamp(dot(wo,half),1e-8,1),a=M[m+4]**2,a2=a*a,D=a2/(PI*(nh*nh*(a2-1)+1)**2),G1=x=>2*x/(x+Math.sqrt(a2+(1-a2)*x*x)),G=G1(nv)*G1(nl),f0=mix([.04,.04,.04],base,M[m+3]),F=mix(f0,[1,1,1],(1-vh)**5),diff=times(times(base,sub([1,1,1],F)),[(1-M[m+3])/PI,(1-M[m+3])/PI,(1-M[m+3])/PI]),spec=mul(F,D*G/(4*nv*nl)),p=.25+.5*M[m+3],weight=1-M[m+5];return {f:mul(add(diff,spec),weight),pdf:weight*((1-p)*nl/PI+p*D*nh/(4*vh))};}
+  function sampleBSDF(h,base,wo){const m=h.mat;
+    if(random()<M[m+5]){const eta=h.front?1/M[m+6]:M[m+6],c=clamp(dot(wo,h.gn),0,1),s2=eta*eta*(1-c*c);let F=1,ct=0;if(s2<1){ct=Math.sqrt(1-s2);const rs=(eta*c-ct)/(eta*c+ct),rp=(c-eta*ct)/(c+eta*ct);F=(rs*rs+rp*rp)/2;}if(random()<F)return {wi:reflect(mul(wo,-1),h.gn),weight:[1,1,1],pdf:0,delta:true,eta:1};return {wi:unit(add(mul(wo,-eta),mul(h.gn,eta*c-ct))),weight:mul(base,eta*eta),pdf:0,delta:true,eta:1/(eta*eta)};}
+    let wi;if(random()<.25+.5*M[m+3]){const a=M[m+4]**2,u=random(),z=Math.sqrt((1-u)/(1+(a*a-1)*u)),r=Math.sqrt(Math.max(0,1-z*z)),phi=2*PI*random(),half=local(h.n,r*Math.cos(phi),r*Math.sin(phi),z);wi=reflect(mul(wo,-1),half);}else{const r=Math.sqrt(random()),phi=2*PI*random();wi=local(h.n,r*Math.cos(phi),r*Math.sin(phi),Math.sqrt(1-r*r));}
+    if(dot(wi,h.gn)<=0)return null;const value=bsdf(h,base,wo,wi);if(value.pdf<1e-20)return null;return {wi,weight:mul(value.f,Math.max(0,dot(h.n,wi))/value.pdf),pdf:value.pdf,delta:false,eta:1};
+  }
+  function sampleLight(h){const index=Math.min(lightCount-1,Math.floor(random()*lightCount)),k=index*16,type=L[k+3];let wi,c,pdf=1/lightCount,distance=1e30,delta=false;
+    if(type===0){wi=sampleEnvironment();const e=environment(wi);c=e.c;pdf*=e.pdf;}
+    else if(type===1){const tri=L[k+14]*24,r=Math.sqrt(random()),u=1-r,w=random()*r,p=add(v(T,tri),add(mul(v(T,tri+4),u),mul(v(T,tri+8),w))),d=sub(p,h.p);distance=Math.sqrt(dot(d,d));wi=mul(d,1/distance);const n=unit(cross(v(T,tri+4),v(T,tri+8))),cos=Math.abs(dot(n,wi));if(cos<1e-8)return null;pdf*=distance*distance/(T[tri+11]*cos);const m=T[tri+3]*20;c=mul(v(M,m+8),M[m+7]);}
+    else if(type===3){const n=unit(v(L,k+8)),z=1-random()*(1-Math.cos(L[k+12])),r=Math.sqrt(1-z*z),phi=random()*2*PI;wi=local(n,r*Math.cos(phi),r*Math.sin(phi),z);c=mul(v(L,k+4),L[k+7]);delta=true;}
+    else{const d=sub(v(L,k),h.p);distance=Math.sqrt(dot(d,d));wi=mul(d,1/Math.max(1e-20,distance));let factor=1;if(type===4){const q=dot(mul(wi,-1),v(L,k+8));factor=clamp((q-L[k+11])/Math.max(1e-6,L[k+13]-L[k+11]),0,1);factor=factor*factor*(3-2*factor);}c=mul(v(L,k+4),L[k+7]*factor/Math.max(eps*eps,distance*distance));delta=true;}
+    if(dot(h.gn,wi)<=0||pdf<1e-20)return null;return {wi,c,pdf,distance,delta};
+  }
+  function cameraRay(x,y,jitter=true){const jx=jitter?random():.5,jy=jitter?random():.5,nx=((x+jx)/settings.width*2-1)*camera.aspect,ny=1-(y+jy)/settings.height*2;let o=camera.eye.slice(),d;
+    if(camera.orthographic){o=add(o,add(mul(camera.right,nx*camera.scale/2),mul(camera.up,ny*camera.scale/2)));d=camera.forward.slice();}else d=unit(add(camera.forward,add(mul(camera.right,nx*camera.tanFov),mul(camera.up,ny*camera.tanFov))));
+    if(jitter&&camera.lensRadius>0){const target=add(o,mul(d,camera.focus/Math.max(1e-6,dot(d,camera.forward)))),r=Math.sqrt(random())*camera.lensRadius,a=random()*2*PI;o=add(o,add(mul(camera.right,r*Math.cos(a)),mul(camera.up,r*Math.sin(a))));d=unit(sub(target,o));}return {o,d};
+  }
+  function samplePixel(x,y,sample){state=(Math.imul(y*settings.width+x+1,747796405)^Math.imul(sample+1,2891336453))>>>0;if(!state)state=1;const ray=cameraRay(x,y);let o=ray.o,d=ray.d,beta=[1,1,1],radiance=[0,0,0],prevPdf=0,delta=true,etaScale=1,coverage=0;
+    for(let bounce=0;bounce<settings.bounces;bounce++){const hit=trace(o,d);if(!hit){if(bounce>0||!settings.transparent){const e=environment(d),w=delta?1:power(prevPdf,e.pdf/lightCount);radiance=add(radiance,times(beta,mul(e.c,w)));}break;}
+      const h=surface(hit,o,d),m=h.mat,base=color(h),wo=mul(d,-1);if(bounce===0)coverage=1;
+      if(M[m+7]>0){const area=T[h.id*24+11],gn=unit(cross(v(T,h.id*24+4),v(T,h.id*24+8))),p=h.t*h.t/(Math.max(1e-8,Math.abs(dot(gn,d)))*area*lightCount),w=delta?1:power(prevPdf,p);radiance=add(radiance,times(beta,mul(v(M,m+8),M[m+7]*w)));}
+      const light=sampleLight(h);if(light){const b=bsdf(h,base,wo,light.wi),cos=Math.max(0,dot(h.n,light.wi));if(cos>0&&b.pdf>0&&!trace(add(h.p,mul(h.gn,eps*2)),light.wi,light.distance-eps*4,true)){const w=light.delta||bounce+1>=settings.bounces?1:power(light.pdf,b.pdf);radiance=add(radiance,times(beta,times(b.f,mul(light.c,cos*w/light.pdf))));}}
+      if(bounce+1>=settings.bounces)break;
+      const b=sampleBSDF(h,base,wo);if(!b)break;beta=times(beta,b.weight);etaScale*=b.eta;prevPdf=b.pdf;delta=b.delta;d=b.wi;o=add(h.p,mul(h.gn,dot(d,h.gn)>0?eps*2:-eps*2));
+      if(bounce>=3){const survive=clamp(Math.max(...beta)*etaScale,.05,.95);if(random()>survive)break;beta=mul(beta,1/survive);}
+    }
+    if(settings.fireflyClamp>0){const largest=Math.max(...radiance);if(largest>settings.fireflyClamp)radiance=mul(radiance,settings.fireflyClamp/largest);}
+    radiance=radiance.map(x=>Number.isFinite(x)?Math.max(0,x):0);
+    let normal=[0,0,0,0],albedo=[0,0,0,coverage];if(sample===0){const center=cameraRay(x,y,false),hit=trace(center.o,center.d);if(hit){const h=surface(hit,center.o,center.d);normal=[...h.n,h.t];albedo=[...color(h),coverage];}}
+    return {color:radiance,normal,albedo,coverage};
+  }
+  function tile(job){const {x,y,width,height,sample}=job,pixels=new Float32Array(width*height*4),normal=sample===0?new Float32Array(pixels.length):null,albedo=sample===0?new Float32Array(pixels.length):null;for(let j=0;j<height;j++)for(let i=0;i<width;i++){const p=(j*width+i)*4,r=samplePixel(x+i,y+j,sample);pixels.set([...r.color,r.coverage],p);if(normal){normal.set(r.normal,p);albedo.set(r.albedo,p);}}return {...job,pixels,normal,albedo};}
+  return {trace,surface,bsdf,environment,cameraRay,samplePixel,tile};
+}
+function finalRenderWorker(createKernel){let kernel;self.onmessage=e=>{try{if(e.data.type==='init'){kernel=createKernel(e.data.scene,e.data.camera,e.data.settings);self.postMessage({type:'ready'});}else if(e.data.type==='tile'){const result=kernel.tile(e.data.job),transfer=[result.pixels.buffer];if(result.normal)transfer.push(result.normal.buffer,result.albedo.buffer);self.postMessage({type:'tile',result},transfer);}}catch(error){self.postMessage({type:'error',message:error.message,stack:error.stack});}};}
+
+return {createTraceKernel,finalRenderWorker};
+})();
+__modules["src/render/final-wgsl.js"]=(()=>{
+
+/** WGSL compute path tracer. Eight storage bindings, 8x8 workgroups, bounded nonrecursive BVH traversal. */
+const FINAL_TRACE_WGSL=/* wgsl */`
+struct Params { dims:vec4u, tile:vec4u, eye:vec4f, forward:vec4f, right:vec4f, up:vec4f, env:vec4f, sky:vec4f, options:vec4f, projection:vec4f }
+struct Triangle { p:vec4f, e1:vec4f, e2:vec4f, n0:vec4f, n1:vec4f, n2:vec4f }
+struct Node { lo:vec4f, hi:vec4f }
+struct Material { base:vec4f, optics:vec4f, emission:vec4f, tex:vec4f, checker:vec4f }
+struct Light { position:vec4f, energy:vec4f, direction:vec4f, shape:vec4f }
+@group(0) @binding(0) var<uniform> p:Params;
+@group(0) @binding(1) var<storage,read> triangles:array<Triangle>;
+@group(0) @binding(2) var<storage,read> nodes:array<Node>;
+@group(0) @binding(3) var<storage,read> materials:array<Material>;
+@group(0) @binding(4) var<storage,read> lights:array<Light>;
+@group(0) @binding(5) var<storage,read> texels:array<vec4f>;
+@group(0) @binding(6) var<storage,read_write> film:array<vec4f>;
+@group(0) @binding(7) var<storage,read_write> normalDepth:array<vec4f>;
+@group(0) @binding(8) var<storage,read_write> albedoCoverage:array<vec4f>;
+const PI:f32=3.141592653589793;
+var<private> rng:u32;
+fn rand()->f32 { rng=rng^(rng<<13u);rng=rng^(rng>>17u);rng=rng^(rng<<5u);return f32(rng)*2.3283064365386963e-10; }
+fn unit(v:vec3f)->vec3f { return v*inverseSqrt(max(1e-30,dot(v,v))); }
+fn power(a:f32,b:f32)->f32 { return a*a/max(1e-30,a*a+b*b); }
+fn local(n:vec3f,v:vec3f)->vec3f { let axis=select(vec3f(0,1,0),vec3f(0,0,1),abs(n.z)<.999);let t=unit(cross(axis,n));return t*v.x+cross(n,t)*v.y+n*v.z; }
+struct Hit { t:f32, id:i32, u:f32, v:f32 }
+fn box(o:vec3f,d:vec3f,node:Node,limit:f32)->bool { var lo=0.0;var hi=limit;for(var a=0u;a<3u;a++){if(abs(d[a])<1e-20){if(o[a]<node.lo[a]||o[a]>node.hi[a]){return false;}}else{let t=(node.lo[a]-o[a])/d[a];let u=(node.hi[a]-o[a])/d[a];lo=max(lo,min(t,u));hi=min(hi,max(t,u));if(hi<lo){return false;}}}return true; }
+fn trace(o:vec3f,d:vec3f,limit:f32,anyHit:bool)->Hit {
+ var hit=Hit(limit,-1,0,0);var stack:array<u32,64>;stack[0]=0u;var sp=1u;
+ loop {if(sp==0u){break;}sp--;let node=nodes[stack[sp]];if(!box(o,d,node,hit.t)){continue;}
+  if(node.lo.w>=0.0){stack[sp]=u32(node.hi.w);stack[sp+1u]=u32(node.lo.w);sp+=2u;continue;}
+  let first=u32(-node.lo.w-1.0);let end=first+u32(node.hi.w);
+  for(var i=first;i<end;i++){let tri=triangles[i];let v=cross(d,tri.e2.xyz);let det=dot(tri.e1.xyz,v);if(abs(det)<1e-16){continue;}let q=o-tri.p.xyz;let u=dot(q,v)/det;if(u<0.0||u>1.0){continue;}let r=cross(q,tri.e1.xyz);let w=dot(d,r)/det;if(w<0.0||u+w>1.0){continue;}let t=dot(tri.e2.xyz,r)/det;if(t<=p.options.x||t>=hit.t){continue;}hit=Hit(t,i32(i),u,w);if(anyHit){return hit;}}
+ }return hit;
+}
+struct Surface { position:vec3f, n:vec3f, gn:vec3f, front:bool, mat:u32 }
+fn surface(hit:Hit,o:vec3f,d:vec3f)->Surface {let tri=triangles[u32(hit.id)];let g=unit(cross(tri.e1.xyz,tri.e2.xyz));let front=dot(g,d)<0.0;let gn=select(-g,g,front);var n=unit(tri.n0.xyz*(1.0-hit.u-hit.v)+tri.n1.xyz*hit.u+tri.n2.xyz*hit.v);if(dot(n,gn)<0.0){n=-n;}if(dot(n,d)>-.001){n=gn;}return Surface(o+d*hit.t,n,gn,front,u32(tri.p.w));}
+fn texel(offset:u32,size:vec2i,xy:vec2i)->vec3f {let q=((xy%size)+size)%size;return texels[offset+u32(q.y*size.x+q.x)].xyz;}
+fn textureColor(tex:vec4f,uv:vec2f)->vec3f {let xy=fract(uv)*tex.yz-.5;let ij=vec2i(floor(xy));let f=fract(xy);let size=vec2i(tex.yz);let off=u32(tex.x);return mix(mix(texel(off,size,ij),texel(off,size,ij+vec2i(1,0)),f.x),mix(texel(off,size,ij+vec2i(0,1)),texel(off,size,ij+vec2i(1,1)),f.x),f.y);}
+fn baseColor(h:Surface)->vec3f {let m=materials[h.mat];var uv=h.position.xy;let n=abs(h.gn);if(n.z<max(n.x,n.y)){uv=select(h.position.xz,h.position.yz,n.x>=n.y);}let a=m.checker.w;uv=vec2f(uv.x*cos(a)-uv.y*sin(a),uv.x*sin(a)+uv.y*cos(a))/m.tex.w;var c=m.base.xyz;if(m.emission.w==1.0&&((i32(floor(uv.x))+i32(floor(uv.y)))%2)!=0){c=m.checker.xyz;}if(m.tex.x>=0.0){c*=textureColor(m.tex,uv);}return c;}
+struct Environment { color:vec3f, pdf:f32 }
+fn environment(d:vec3f)->Environment {
+ if(p.env.x>=0.0){let w=u32(p.env.y);let h=u32(p.env.z);let u=fract((atan2(d.y,d.x)-p.env.w)/(2.0*PI)+.5);let theta=acos(clamp(d.z,-1.0,1.0));let x=min(w-1u,u32(u*f32(w)));let y=min(h-1u,u32(theta/PI*f32(h)));let index=u32(p.env.x)+y*w+x;var prev=0.0;if(index>u32(p.env.x)){prev=texels[index-1u].w;}let mass=texels[index].w-prev;let solid=2.0*PI/f32(w)*(cos(PI*f32(y)/f32(h))-cos(PI*f32(y+1u)/f32(h)));return Environment(texels[index].xyz*p.sky.w,mass/max(1e-20,solid));}
+ let t=sqrt(clamp(d.z*.5+.5,0.0,1.0));return Environment(mix(p.sky.xyz*.18,p.sky.xyz,t)*p.sky.w,1.0/(4.0*PI));
+}
+fn sampleEnvironment()->vec3f {
+ if(p.env.x>=0.0){let w=u32(p.env.y);let h=u32(p.env.z);var lo=0u;var hi=w*h-1u;let r=rand();loop{if(lo>=hi){break;}let mid=(lo+hi)/2u;if(texels[u32(p.env.x)+mid].w<r){lo=mid+1u;}else{hi=mid;}}
+ let x=lo%w;let y=lo/w;let phi=((f32(x)+rand())/f32(w)-.5)*2.0*PI+p.env.w;let z=mix(cos(PI*f32(y)/f32(h)),cos(PI*f32(y+1u)/f32(h)),rand());let s=sqrt(max(0.0,1.0-z*z));return vec3f(s*cos(phi),s*sin(phi),z);}
+ let z=1.0-2.0*rand();let phi=2.0*PI*rand();let s=sqrt(max(0.0,1.0-z*z));return vec3f(s*cos(phi),s*sin(phi),z);
+}
+struct BSDF { f:vec3f, pdf:f32 }
+fn bsdf(h:Surface,base:vec3f,wo:vec3f,wi:vec3f)->BSDF {
+ let m=materials[h.mat];let nv=dot(h.n,wo);let nl=dot(h.n,wi);if(nv<=0.0||nl<=0.0){return BSDF(vec3f(0),0);}
+ let half=unit(wo+wi);let nh=clamp(dot(h.n,half),0.0,1.0);let vh=clamp(dot(wo,half),1e-8,1.0);let a=m.optics.x*m.optics.x;let a2=a*a;let den=nh*nh*(a2-1.0)+1.0;let D=a2/(PI*den*den);let G=(2.0*nv/(nv+sqrt(a2+(1.0-a2)*nv*nv)))*(2.0*nl/(nl+sqrt(a2+(1.0-a2)*nl*nl)));
+ let F=mix(mix(vec3f(.04),base,m.base.w),vec3f(1),pow(1.0-vh,5.0));let diffuse=base*(1.0-F)*(1.0-m.base.w)/PI;let specular=F*D*G/(4.0*nv*nl);let q=.25+.5*m.base.w;let weight=1.0-m.optics.y;
+ return BSDF((diffuse+specular)*weight,weight*((1.0-q)*nl/PI+q*D*nh/(4.0*vh)));
+}
+struct Scatter { wi:vec3f, weight:vec3f, pdf:f32, delta:bool, eta:f32, valid:bool }
+fn scatter(h:Surface,base:vec3f,wo:vec3f)->Scatter {
+ let m=materials[h.mat];
+ if(rand()<m.optics.y){let eta=select(m.optics.z,1.0/m.optics.z,h.front);let c=clamp(dot(wo,h.gn),0.0,1.0);let s2=eta*eta*(1.0-c*c);var F=1.0;var ct=0.0;if(s2<1.0){ct=sqrt(1.0-s2);let rs=(eta*c-ct)/(eta*c+ct);let rp=(c-eta*ct)/(c+eta*ct);F=(rs*rs+rp*rp)*.5;}if(rand()<F){return Scatter(reflect(-wo,h.gn),vec3f(1),0,true,1,true);}return Scatter(unit(-wo*eta+h.gn*(eta*c-ct)),base*eta*eta,0,true,1.0/(eta*eta),true);}
+ var wi=vec3f(0);if(rand()<.25+.5*m.base.w){let a=m.optics.x*m.optics.x;let u=rand();let z=sqrt((1.0-u)/(1.0+(a*a-1.0)*u));let r=sqrt(max(0.0,1.0-z*z));let phi=2.0*PI*rand();wi=reflect(-wo,local(h.n,vec3f(r*cos(phi),r*sin(phi),z)));}else{let r=sqrt(rand());let phi=2.0*PI*rand();wi=local(h.n,vec3f(r*cos(phi),r*sin(phi),sqrt(1.0-r*r)));}
+ let b=bsdf(h,base,wo,wi);let valid=dot(wi,h.gn)>0.0&&b.pdf>1e-20;return Scatter(wi,b.f*max(0.0,dot(h.n,wi))/max(1e-20,b.pdf),b.pdf,false,1,valid);
+}
+struct LightSample { wi:vec3f, color:vec3f, pdf:f32, distance:f32, delta:bool, valid:bool }
+fn sampleLight(h:Surface)->LightSample {
+ let count=u32(p.options.y);let index=min(count-1u,u32(rand()*f32(count)));let l=lights[index];var wi=vec3f(0);var c=vec3f(0);var pdf=1.0/f32(count);var distance=1e30;var delta=false;
+ if(l.position.w==0.0){wi=sampleEnvironment();let e=environment(wi);c=e.color;pdf*=e.pdf;}
+ else if(l.position.w==1.0){let tri=triangles[u32(l.shape.z)];let r=sqrt(rand());let u=1.0-r;let v=rand()*r;let pos=tri.p.xyz+tri.e1.xyz*u+tri.e2.xyz*v;let d=pos-h.position;distance=length(d);wi=d/max(1e-20,distance);let n=unit(cross(tri.e1.xyz,tri.e2.xyz));let cosine=abs(dot(n,wi));pdf*=distance*distance/(tri.e2.w*max(1e-8,cosine));let m=materials[u32(tri.p.w)];c=m.emission.xyz*m.optics.w;}
+ else if(l.position.w==3.0){let z=1.0-rand()*(1.0-cos(l.shape.x));let r=sqrt(max(0.0,1.0-z*z));let phi=2.0*PI*rand();wi=local(unit(l.direction.xyz),vec3f(r*cos(phi),r*sin(phi),z));c=l.energy.xyz*l.energy.w;delta=true;}
+ else{let d=l.position.xyz-h.position;distance=length(d);wi=d/max(1e-20,distance);var factor=1.0;if(l.position.w==4.0){let q=dot(-wi,l.direction.xyz);factor=clamp((q-l.direction.w)/max(1e-6,l.shape.y-l.direction.w),0.0,1.0);factor=factor*factor*(3.0-2.0*factor);}c=l.energy.xyz*l.energy.w*factor/max(p.options.x*p.options.x,distance*distance);delta=true;}
+ return LightSample(wi,c,pdf,distance,delta,dot(h.gn,wi)>0.0&&pdf>1e-20);
+}
+struct Ray { o:vec3f, d:vec3f }
+fn cameraRay(pixel:vec2u,jitter:bool)->Ray {
+ var j=vec2f(.5);if(jitter){j=vec2f(rand(),rand());}let xy=(vec2f(pixel)+j)/vec2f(p.dims.xy);let nx=(xy.x*2.0-1.0)*p.right.w;let ny=1.0-xy.y*2.0;var o=p.eye.xyz;var d=unit(p.forward.xyz+p.right.xyz*nx*p.up.w+p.up.xyz*ny*p.up.w);
+ if(p.projection.x>0.0){o+=p.right.xyz*nx*p.projection.y*.5+p.up.xyz*ny*p.projection.y*.5;d=p.forward.xyz;}
+ if(jitter&&p.eye.w>0.0){let focalPoint=o+d*p.forward.w/max(1e-6,dot(d,p.forward.xyz));let r=sqrt(rand())*p.eye.w;let a=rand()*2.0*PI;o+=p.right.xyz*r*cos(a)+p.up.xyz*r*sin(a);d=unit(focalPoint-o);}return Ray(o,d);
+}
+@compute @workgroup_size(8,8) fn main(@builtin(global_invocation_id) id:vec3u){
+ if(any(id.xy>=p.tile.zw)){return;}let pixel=p.tile.xy+id.xy;if(any(pixel>=p.dims.xy)){return;}let index=pixel.y*p.dims.x+pixel.x;
+ rng=((index+1u)*747796405u)^((p.dims.z+1u)*2891336453u);if(rng==0u){rng=1u;}
+ let initial=cameraRay(pixel,true);var o=initial.o;var d=initial.d;var beta=vec3f(1);var radiance=vec3f(0);var previousPdf=0.0;var delta=true;var etaScale=1.0;var coverage=0.0;
+ for(var bounce=0u;bounce<p.dims.w;bounce++){
+  let hit=trace(o,d,1e30,false);if(hit.id<0){if(bounce>0u||p.options.z==0.0){let e=environment(d);var w=1.0;if(!delta){w=power(previousPdf,e.pdf/p.options.y);}radiance+=beta*e.color*w;}break;}
+  let h=surface(hit,o,d);let m=materials[h.mat];let base=baseColor(h);let wo=-d;if(bounce==0u){coverage=1.0;}
+  if(m.optics.w>0.0){let tri=triangles[u32(hit.id)];let gn=unit(cross(tri.e1.xyz,tri.e2.xyz));let pdf=hit.t*hit.t/(max(1e-8,abs(dot(gn,d)))*tri.e2.w*p.options.y);var w=1.0;if(!delta){w=power(previousPdf,pdf);}radiance+=beta*m.emission.xyz*m.optics.w*w;}
+  let light=sampleLight(h);if(light.valid){let b=bsdf(h,base,wo,light.wi);let cosine=max(0.0,dot(h.n,light.wi));if(cosine>0.0&&b.pdf>0.0){let shadow=trace(h.position+h.gn*p.options.x*2.0,light.wi,light.distance-p.options.x*4.0,true);if(shadow.id<0){var w=1.0;if(!light.delta&&bounce+1u<p.dims.w){w=power(light.pdf,b.pdf);}radiance+=beta*b.f*light.color*(cosine*w/light.pdf);}}}
+  if(bounce+1u>=p.dims.w){break;}
+  let b=scatter(h,base,wo);if(!b.valid){break;}beta*=b.weight;etaScale*=b.eta;previousPdf=b.pdf;delta=b.delta;d=b.wi;o=h.position+h.gn*select(-2.0,2.0,dot(d,h.gn)>0.0)*p.options.x;
+  if(bounce>=3u){let survival=clamp(max(beta.x,max(beta.y,beta.z))*etaScale,.05,.95);if(rand()>survival){break;}beta/=survival;}
+ }
+ if(p.options.w>0.0){let largest=max(radiance.x,max(radiance.y,radiance.z));if(largest>p.options.w){radiance*=p.options.w/largest;}}
+ radiance=max(vec3f(0),radiance);if(any(radiance!=radiance)||any(radiance>vec3f(1e30))){radiance=vec3f(0);}
+ if(p.dims.z==0u){film[index]=vec4f(0);normalDepth[index]=vec4f(0);albedoCoverage[index]=vec4f(0);let center=cameraRay(pixel,false);let hit=trace(center.o,center.d,1e30,false);if(hit.id>=0){let h=surface(hit,center.o,center.d);normalDepth[index]=vec4f(h.n,hit.t);albedoCoverage[index]=vec4f(baseColor(h),0);}}
+ film[index]+=vec4f(radiance,1);albedoCoverage[index].w+=coverage;
+}
+`;
+
+const FINAL_DISPLAY_WGSL=/* wgsl */`
+struct Display { dims:vec4f, options:vec4f }
+@group(0) @binding(0) var<uniform> p:Display;
+@group(0) @binding(1) var<storage,read> film:array<vec4f>;
+@group(0) @binding(2) var<storage,read> normalDepth:array<vec4f>;
+@group(0) @binding(3) var<storage,read> albedoCoverage:array<vec4f>;
+@vertex fn vs(@builtin(vertex_index) i:u32)->@builtin(position) vec4f {let x=f32((i<<1u)&2u);let y=f32(i&2u);return vec4f(x*2.0-1.0,y*2.0-1.0,0,1);}
+fn average(i:u32)->vec3f {return film[i].xyz/max(1.0,film[i].w);}
+fn srgb(v:vec3f)->vec3f {return select(v*12.92,1.055*pow(max(vec3f(0),v),vec3f(1.0/2.4))-.055,v>vec3f(.0031308));}
+@fragment fn fs(@builtin(position) pos:vec4f)->@location(0) vec4f {
+ let xy=vec2i(pos.xy);let width=u32(p.dims.x);let index=u32(xy.y)*width+u32(xy.x);let feature=normalDepth[index];var c=average(index);
+ if(p.options.x>0.0&&p.options.y==0.0&&feature.w>0.0){var sum=vec3f(0);var total=0.0;for(var y=-2;y<=2;y++){for(var x=-2;x<=2;x++){let q=xy+vec2i(x,y);if(any(q<vec2i(0))||any(q>=vec2i(p.dims.xy))){continue;}let j=u32(q.y)*width+u32(q.x);let f=normalDepth[j];if(f.w<=0.0||film[j].w==0.0){continue;}let dc=albedoCoverage[j].xyz-albedoCoverage[index].xyz;let w=exp(-f32(x*x+y*y)/8.0)*pow(max(0.0,dot(f.xyz,feature.xyz)),32.0)*exp(-abs(f.w-feature.w)/max(.0001,feature.w*.02))*exp(-dot(dc,dc)*16.0);sum+=average(j)*w;total+=w;}}c=sum/max(1e-20,total);}
+ let alpha=select(1.0,albedoCoverage[index].w/max(1.0,film[index].w),p.options.w>0.0);
+ if(p.options.y==1.0){c=srgb(albedoCoverage[index].xyz);}else if(p.options.y==2.0){c=select(vec3f(0),feature.xyz*.5+.5,feature.w>0.0);}else if(p.options.y==3.0){c=vec3f(select(0.0,exp(-feature.w/max(.001,p.options.z)),feature.w>0.0));}else if(p.options.y==4.0){c=vec3f(min(1.0,film[index].w/256.0));}
+ else {if(p.options.w>0.0&&alpha>0.0){c/=alpha;}c*=exp2(p.dims.z);if(p.dims.w==0.0){c=clamp((c*(2.51*c+.03))/(c*(2.43*c+.59)+.14),vec3f(0),vec3f(1));}else if(p.dims.w==1.0){c=c/(1.0+c);}c=srgb(clamp(c,vec3f(0),vec3f(1)));let checker=select(.16,.23,((xy.x/12+xy.y/12)%2)==0);c=mix(vec3f(checker),c,alpha);}
+ return vec4f(clamp(c,vec3f(0),vec3f(1)),1);
+}
+`;
+
+return {FINAL_TRACE_WGSL,FINAL_DISPLAY_WGSL};
+})();
+__modules["src/render/final-scene.js"]=(()=>{
+const {V,M,hexRGB} = __modules["src/core/math.js"];
+const {geometryMesh} = __modules["src/core/geometry.js"];
+const {transformMesh} = __modules["src/core/mesh.js"];
+
+
+
+/** Final rendering uses a frozen, world-space scene, independent of selection overlays. */
+const FINAL_DEFAULTS={width:960,height:640,samples:128,bounces:8,quality:1.5,backend:'auto',exposure:0,toneMap:'aces',denoise:false,transparent:false,ground:true,groundColor:'#c6cacb',groundZ:-.55,environmentColor:'#b5c8e5',environmentStrength:.8,environmentRotation:0,environmentImage:'',aperture:0,focusDistance:48,fireflyClamp:0,includePreviews:true,lights:[{type:'sun',name:'Key sun',direction:[-1,-1,2],color:'#fff0dc',power:3,angle:4}]};
+const MATERIAL_PRESETS={
+  Matte:{color:'#b4c8c2',metallic:0,roughness:.8,transmission:0,ior:1.5,emission:0},
+  Ceramic:{color:'#d8e0dc',metallic:0,roughness:.18,transmission:0,ior:1.5,emission:0},
+  Aluminum:{color:'#c7cbd0',metallic:1,roughness:.22,transmission:0,ior:1.5,emission:0},
+  Gold:{color:'#e5b45a',metallic:1,roughness:.16,transmission:0,ior:1.5,emission:0},
+  Glass:{color:'#f8ffff',metallic:0,roughness:.05,transmission:1,ior:1.5,emission:0},
+  Water:{color:'#edfaff',metallic:0,roughness:.04,transmission:1,ior:1.333,emission:0},
+  Emissive:{color:'#fff0d9',metallic:0,roughness:.4,transmission:0,ior:1.5,emission:8}
+};
+function linear(v){return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;}
+function linearColor(s){return hexRGB(/^#[0-9a-f]{6}$/i.test(s??'')?s:'#ffffff').map(linear);}
+const num=(v,d,min,max)=>Number.isFinite(Number(v))?Math.min(max,Math.max(min,Number(v))):d;
+function renderSettings(value={}){
+  const s={...structuredClone(FINAL_DEFAULTS),...value};
+  for(const [k,min,max] of [['width',16,8192],['height',16,8192],['samples',1,65536],['bounces',1,32]])s[k]=Math.round(num(s[k],FINAL_DEFAULTS[k],min,max));
+  if(s.width*s.height>8388608)throw Error('Render resolution exceeds the 8,388,608-pixel memory budget (4K UHD is supported).');
+  for(const [k,min,max] of [['quality',.25,4],['exposure',-16,16],['environmentStrength',0,100],['environmentRotation',-360,360],['aperture',0,1000],['focusDistance',.001,1e8],['fireflyClamp',0,1e6],['groundZ',-1e8,1e8]])s[k]=num(s[k],FINAL_DEFAULTS[k],min,max);
+  s.backend=['auto','webgpu','cpu'].includes(s.backend)?s.backend:'auto';
+  s.lights=Array.isArray(s.lights)?s.lights.slice(0,64):structuredClone(FINAL_DEFAULTS.lights);
+  for(const k of ['ground','denoise','transparent','includePreviews'])s[k]=!!s[k];
+  return s;
+}
+function renderCamera(camera,settings){
+  const eye=[...camera.eye],forward=V.unit(V.sub(camera.target,eye));
+  const right=V.unit(V.cross(forward,camera.type==='Top'?[0,1,0]:[0,0,1])),up=V.cross(right,forward);
+  return {eye,forward,right,up,aspect:settings.width/settings.height,tanFov:Math.tan(camera.fov/2),orthographic:camera.type!=='Perspective',scale:camera.scale,lensRadius:settings.aperture/2,focus:settings.focusDistance};
+}
+/** Flat BVH: 8 floats/node; leaf min.w=-first-1, max.w=count; branch min.w/max.w=child indices. */
+function buildRenderBVH(triangles){
+  const count=triangles.length/24;if(!Number.isInteger(count))throw Error('Invalid packed triangles');
+  if(!count)return {triangles:new Float32Array(24),nodes:new Float32Array([0,0,0,-1,0,0,0,0]),triangleCount:0};
+  const ids=Array.from({length:count},(_,i)=>i),boxes=new Float64Array(count*6),centers=new Float64Array(count*3),nodes=[],ordered=[];
+  for(let i=0;i<count;i++)for(let a=0;a<3;a++){const t=i*24,x=triangles[t+a],y=x+triangles[t+4+a],z=x+triangles[t+8+a];boxes[i*6+a]=Math.min(x,y,z);boxes[i*6+3+a]=Math.max(x,y,z);centers[i*3+a]=(x+y+z)/3;}
+  function split(list,depth){
+    const index=nodes.length/8,lo=[Infinity,Infinity,Infinity],hi=[-Infinity,-Infinity,-Infinity];
+    for(const id of list)for(let a=0;a<3;a++){lo[a]=Math.min(lo[a],boxes[id*6+a]);hi[a]=Math.max(hi[a],boxes[id*6+3+a]);}
+    nodes.push(...lo,0,...hi,0);
+    if(list.length<=6||depth>=40){nodes[index*8+3]=-ordered.length-1;nodes[index*8+7]=list.length;ordered.push(...list);return index;}
+    let axis=0;for(let a=1;a<3;a++)if(hi[a]-lo[a]>hi[axis]-lo[axis])axis=a;
+    list.sort((a,b)=>centers[a*3+axis]-centers[b*3+axis]);const mid=list.length>>1;
+    nodes[index*8+3]=split(list.slice(0,mid),depth+1);nodes[index*8+7]=split(list.slice(mid),depth+1);return index;
+  }
+  split(ids,0);const packed=new Float32Array(triangles.length);ordered.forEach((id,i)=>packed.set(triangles.subarray(id*24,id*24+24),i*24));
+  return {triangles:packed,nodes:new Float32Array(nodes),triangleCount:count};
+}
+function compileRenderScene(entries,settings,images=new Map()){
+  const triangles=[],materials=[],texels=[],lights=[],warnings=[],textureCache=new Map();let skipped=0;
+  function texture(key,environment=false){if(!key||!images.has(key))return [-1,0,0];const cacheKey=key+environment;if(textureCache.has(cacheKey))return textureCache.get(cacheKey);
+    const image=images.get(key),offset=texels.length/4,w=image.width,h=image.height;let sum=0;
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){const p=(y*w+x)*4,c=image.pixels.slice(p,p+3);sum+=environment?Math.max(1e-8,(.2126*c[0]+.7152*c[1]+.0722*c[2])*(Math.cos(Math.PI*y/h)-Math.cos(Math.PI*(y+1)/h))):0;texels.push(...c,environment?sum:1);}
+    if(environment)for(let i=offset;i<texels.length/4;i++)texels[i*4+3]/=sum;
+    const result=[offset,w,h];textureCache.set(cacheKey,result);return result;
+  }
+  function material(o){const m=o.material??{},id=materials.length/20,c=linearColor(o.color),e=linearColor(m.emissionColor??o.color),t=texture(m.texture),checker=linearColor(m.checkerColor??'#eeeeee');
+    materials.push(...c,num(m.metallic,0,0,1),num(m.roughness,.4,.025,1),num(m.transmission,0,0,1),num(m.ior,1.5,1.0001,3),num(m.emission,0,0,1e6),...e,m.pattern==='checker'?1:0,...t,num(m.textureScale,1,.000001,1e6),...checker,num(m.textureRotation,0,-360,360)*Math.PI/180);return id;}
+  function triangle(a,b,c,na,nb,nc,mat){const e1=V.sub(b,a),e2=V.sub(c,a),area=V.length(V.cross(e1,e2))/2;if(![...a,...b,...c,...na,...nb,...nc].every(Number.isFinite))throw Error('Non-finite geometry in render scene');if(area<1e-18){skipped++;return;}if(triangles.length/24>=500000)throw Error('Final-render triangle budget exceeded (500,000). Reduce tessellation quality or hide objects.');triangles.push(...a,mat,...e1,-1,...e2,area,...na,0,...nb,0,...nc,0);}
+  let min=[Infinity,Infinity,Infinity],max=[-Infinity,-Infinity,-Infinity];
+  for(const entry of entries){const o=entry.object??entry;if(o.visible===false)continue;const mesh=entry.mesh??transformMeshOrNull(o,settings.quality);if(!mesh){warnings.push(`${o.name}: curves/points are construction geometry; use Pipe for renderable thickness.`);continue;}
+    const mat=material(o);for(const p of mesh.positions)for(let a=0;a<3;a++){min[a]=Math.min(min[a],p[a]);max[a]=Math.max(max[a],p[a]);}
+    for(let i=0;i<mesh.indices.length;i+=3){const ids=mesh.indices.slice(i,i+3),p=ids.map(j=>mesh.positions[j]);const n=V.unit(V.cross(V.sub(p[1],p[0]),V.sub(p[2],p[0])));triangle(...p,...ids.map(j=>mesh.normals?.[j]??n),mat);}
+  }
+  if(!Number.isFinite(min[0])){min=[-10,-10,-10];max=[10,10,10];}
+  const diagonal=V.length(V.sub(max,min)),epsilon=Math.max(1e-6,diagonal*1e-6);
+  if(settings.ground){const r=Math.max(10,diagonal*5),x=(min[0]+max[0])/2,y=(min[1]+max[1])/2,z=settings.groundZ,n=[0,0,1],mat=material({color:settings.groundColor,material:{roughness:.85}}),a=[x-r,y-r,z],b=[x+r,y-r,z],c=[x+r,y+r,z],d=[x-r,y+r,z];triangle(a,b,c,n,n,n,mat);triangle(a,c,d,n,n,n,mat);}
+  const vec=(v,d)=>Array.isArray(v)&&v.length===3&&v.every(Number.isFinite)?v:d;
+  // Environment occupies light slot zero. Analytic lights follow; mesh emitters are appended after BVH ordering.
+  lights.push(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+  for(const l of settings.lights){if(l.enabled===false)continue;const p=vec(l.position,[0,0,20]),color=linearColor(l.color),power=num(l.power,1,0,1e9),rawDirection=vec(l.direction,[0,0,-1]),dir=V.length(rawDirection)>1e-12?V.unit(rawDirection):[0,0,-1];
+    if(l.type==='area'){const n=V.length(dir)>.5?dir:[0,0,-1],right=V.unit(V.cross(Math.abs(n[2])>.99?[0,1,0]:[0,0,1],n)),up=V.cross(n,right),w=num(l.width,10,.001,1e6)/2,h=num(l.height,10,.001,1e6)/2,P=[[-1,-1],[1,-1],[1,1],[-1,1]].map(([x,y])=>V.add(p,V.add(V.mul(right,x*w),V.mul(up,y*h)))),mat=material({color:l.color,material:{emission:power,emissionColor:l.color,roughness:1}});triangle(P[0],P[1],P[2],n,n,n,mat);triangle(P[0],P[2],P[3],n,n,n,mat);}
+    else {const type={point:2,sun:3,spot:4}[l.type];if(!type)continue;lights.push(...p,type,...color,power,...dir,Math.cos(num(l.cone,45,1,179)*Math.PI/360),num(l.angle,1,0,45)*Math.PI/180,Math.cos(num(l.cone,45,1,179)*Math.PI/480),-1,0);}
+  }
+  const bvh=buildRenderBVH(new Float32Array(triangles));
+  for(let i=0;i<bvh.triangleCount;i++){const k=i*24,mat=bvh.triangles[k+3]*20;if(materials[mat+7]<=0)continue;const id=lights.length/16;bvh.triangles[k+7]=id;lights.push(0,0,0,1,0,0,0,0,0,0,0,0,0,0,i,0);}
+  const env=texture(settings.environmentImage,true);if(skipped)warnings.push(`${skipped} degenerate triangles omitted.`);
+  return {...bvh,materials:new Float32Array(materials.length?materials:Array(20).fill(0)),lights:new Float32Array(lights),texels:new Float32Array(texels.length?texels:[0,0,0,1]),environment:[...env,settings.environmentRotation*Math.PI/180],sky:linearColor(settings.environmentColor),intensity:settings.environmentStrength,epsilon,warnings,bounds:{min,max},materialCount:materials.length/20,lightCount:lights.length/16};
+}
+function transformMeshOrNull(o,quality){const mesh=geometryMesh(o.geometry,quality);return mesh?transformMesh(mesh,o.matrix??M.identity()):null;}
+
+return {FINAL_DEFAULTS,MATERIAL_PRESETS,linear,linearColor,renderSettings,renderCamera,buildRenderBVH,compileRenderScene};
+})();
+__modules["src/render/final-image.js"]=(()=>{
+const {linear} = __modules["src/render/final-scene.js"];
+
+function decodeRGBE(bytes){
+  let p=0;const line=()=>{let start=p;while(p<bytes.length&&bytes[p]!==10)p++;if(p>=bytes.length)throw Error('Truncated HDR header');return new TextDecoder().decode(bytes.subarray(start,p++)).trim();};
+  if(!/^#\?(RADIANCE|RGBE)$/.test(line()))throw Error('Not a Radiance RGBE image');let format=false;
+  for(let i=0;i<100;i++){const text=line();if(text==='FORMAT=32-bit_rle_rgbe')format=true;if(!text)break;}
+  if(!format)throw Error('HDR must use FORMAT=32-bit_rle_rgbe');const match=line().match(/^([+-])Y (\d+) ([+-])X (\d+)$/);if(!match)throw Error('HDR orientation must use Y followed by X');const h=Number(match[2]),w=Number(match[4]);if(w<1||h<1||w*h>16777216)throw Error('HDR exceeds 16 megapixels');
+  const pixels=new Float32Array(w*h*4),scan=new Uint8Array(w*4),read=()=>{if(p>=bytes.length)throw Error('Truncated HDR scanline');return bytes[p++];};
+  for(let y=0;y<h;y++){
+    if(w>=8&&w<=32767&&bytes[p]===2&&bytes[p+1]===2&&(bytes[p+2]&128)===0){read();read();if((read()<<8|read())!==w)throw Error('HDR scanline width mismatch');for(let c=0;c<4;c++){let x=0;while(x<w){const code=read();if(code===0)throw Error('Invalid HDR run');const count=code>128?code-128:code;if(x+count>w)throw Error('HDR run exceeds scanline');if(code>128){const v=read();for(let i=0;i<count;i++)scan[(x++)*4+c]=v;}else for(let i=0;i<count;i++)scan[(x++)*4+c]=read();}}}
+    else for(let x=0;x<w;x++){for(let c=0;c<4;c++)scan[x*4+c]=read();if(scan[x*4]===1&&scan[x*4+1]===1&&scan[x*4+2]===1)throw Error('Legacy RGBE repeat encoding is not supported; resave as scanline RLE.');}
+    for(let x=0;x<w;x++){const k=x*4,q=((match[1]==='-'?y:h-1-y)*w+(match[3]==='+'?x:w-1-x))*4,scale=scan[k+3]?2**(scan[k+3]-136):0;for(let c=0;c<3;c++)pixels[q+c]=scan[k+c]*scale;pixels[q+3]=1;}
+  }return {width:w,height:h,pixels};
+}
+function resizeRadiance(image,maxWidth=1024,maxHeight=512){
+  const scale=Math.min(1,maxWidth/image.width,maxHeight/image.height);if(scale===1)return image;const w=Math.max(1,Math.round(image.width*scale)),h=Math.max(1,Math.round(image.height*scale)),pixels=new Float32Array(w*h*4);
+  // Area averaging preserves small bright emitters instead of discarding them when resizing HDR maps.
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const x0=x*image.width/w,x1=(x+1)*image.width/w,y0=y*image.height/h,y1=(y+1)*image.height/h;let weight=0;const out=(y*w+x)*4;for(let j=Math.floor(y0);j<Math.ceil(y1);j++)for(let i=Math.floor(x0);i<Math.ceil(x1);i++){const a=(Math.min(i+1,x1)-Math.max(i,x0))*(Math.min(j+1,y1)-Math.max(j,y0));weight+=a;const k=(j*image.width+i)*4;for(let c=0;c<3;c++)pixels[out+c]+=image.pixels[k+c]*a;}for(let c=0;c<3;c++)pixels[out+c]/=weight;pixels[out+3]=1;}
+  return {width:w,height:h,pixels};
+}
+function loadRenderImages(entries,settings){return (async()=>{
+  const sources=new Set([settings.environmentImage,...entries.map(e=>(e.object??e).material?.texture)].filter(Boolean)),images=new Map();
+  for(const source of sources){if(!/^data:(image\/[^;,]+|application\/octet-stream);base64,/.test(source))throw Error('Render images must be embedded data URLs; remote image URLs are not fetched.');const raw=atob(source.slice(source.indexOf(',')+1)),bytes=Uint8Array.from(raw,c=>c.charCodeAt(0));if(bytes.length>32*1024*1024)throw Error('Render image exceeds 32 MiB');
+    if(bytes[0]===35&&bytes[1]===63){images.set(source,resizeRadiance(decodeRGBE(bytes)));continue;}
+    const bitmap=await createImageBitmap(new Blob([bytes]));try{if(bitmap.width*bitmap.height>33554432)throw Error('Texture exceeds 32 megapixels');const ratio=Math.min(1,1024/bitmap.width,(source===settings.environmentImage?512:1024)/bitmap.height),w=Math.max(1,Math.round(bitmap.width*ratio)),h=Math.max(1,Math.round(bitmap.height*ratio)),canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(bitmap,0,0,w,h);const rgba=ctx.getImageData(0,0,w,h).data,pixels=new Float32Array(rgba.length);for(let i=0;i<rgba.length;i++)pixels[i]=i%4===3?rgba[i]/255:linear(rgba[i]/255);images.set(source,{width:w,height:h,pixels});}finally{bitmap.close();}
+  }return images;
+})();}
+const srgb=x=>x<=.0031308?12.92*x:1.055*x**(1/2.4)-.055;
+function toneMapRGB(rgb,exposure=0,tone='aces'){return rgb.map(value=>{let x=Math.max(0,value*2**exposure);if(tone==='aces')x=(x*(2.51*x+.03))/(x*(2.43*x+.59)+.14);else if(tone==='reinhard')x=x/(1+x);return Math.min(1,Math.max(0,srgb(Math.min(1,x))));});}
+function filmRGBA(frame,options={}){
+  const {width,height,film,normal,albedo}=frame,rgba=new Uint8ClampedArray(width*height*4),pass=options.pass??'beauty';
+  const mean=(k,c)=>film[k+c]/Math.max(1,film[k+3]);
+  for(let y=0;y<height;y++)for(let x=0;x<width;x++){const k=(y*width+x)*4,alpha=options.transparent?albedo[k+3]/Math.max(1,film[k+3]):1;let c=[mean(k,0),mean(k,1),mean(k,2)];
+    if(options.denoise&&pass==='beauty'&&normal[k+3]>0){let sum=[0,0,0],weight=0;for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const xx=x+dx,yy=y+dy;if(xx<0||yy<0||xx>=width||yy>=height)continue;const q=(yy*width+xx)*4;if(normal[q+3]<=0||film[q+3]===0)continue;let dot=0,dc=0;for(let a=0;a<3;a++){dot+=normal[q+a]*normal[k+a];dc+=(albedo[q+a]-albedo[k+a])**2;}const w=Math.exp(-(dx*dx+dy*dy)/8)*Math.max(0,dot)**32*Math.exp(-Math.abs(normal[q+3]-normal[k+3])/Math.max(.0001,normal[k+3]*.02))*Math.exp(-dc*16);for(let a=0;a<3;a++)sum[a]+=mean(q,a)*w;weight+=w;}if(weight>0)c=sum.map(v=>v/weight);}
+    if(pass==='normal')c=normal[k+3]>0?[0,1,2].map(a=>normal[k+a]*.5+.5):[0,0,0];
+    else if(pass==='albedo')c=[0,1,2].map(a=>srgb(Math.max(0,albedo[k+a])));
+    else if(pass==='depth')c=Array(3).fill(normal[k+3]>0?Math.exp(-normal[k+3]/Math.max(.001,options.focusDistance??48)):0);
+    else if(pass==='samples')c=Array(3).fill(Math.min(1,film[k+3]/256));
+    else c=toneMapRGB(c.map(v=>options.transparent&&alpha>0?v/alpha:v),options.exposure??0,options.toneMap??'aces');
+    for(let a=0;a<3;a++)rgba[k+a]=Math.round(Math.min(1,Math.max(0,c[a]))*255);rgba[k+3]=Math.round((pass==='beauty'?Math.min(1,alpha):1)*255);
+  }return rgba;
+}
+/** Linear, uncompressed OpenEXR v2 scanlines: RGBA + albedo + normals + depth + sample-count. */
+function encodeEXR(frame,metadata={}){
+  const {width,height,film,normal,albedo}=frame,enc=new TextEncoder(),text=s=>enc.encode(s+'\0'),join=parts=>{const a=new Uint8Array(parts.reduce((n,p)=>n+p.length,0));let o=0;for(const p of parts){a.set(p,o);o+=p.length;}return a;},ints=(...v)=>{const b=new Uint8Array(v.length*4),d=new DataView(b.buffer);v.forEach((n,i)=>d.setInt32(i*4,n,true));return b;},floats=(...v)=>{const b=new Uint8Array(v.length*4),d=new DataView(b.buffer);v.forEach((n,i)=>d.setFloat32(i*4,n,true));return b;},attr=(name,type,data)=>join([text(name),text(type),ints(data.length),data]);
+  const channels=['A','B','G','R','Z','albedo.B','albedo.G','albedo.R','normal.X','normal.Y','normal.Z','samples'].sort(),mean=(k,c)=>film[k+c]/Math.max(1,film[k+3]);
+  const header=join([ints(20000630,2),attr('channels','chlist',join([...channels.map(c=>join([text(c),ints(2),new Uint8Array(4),ints(1,1)])),new Uint8Array(1)])),attr('compression','compression',new Uint8Array([0])),attr('dataWindow','box2i',ints(0,0,width-1,height-1)),attr('displayWindow','box2i',ints(0,0,width-1,height-1)),attr('lineOrder','lineOrder',new Uint8Array([0])),attr('pixelAspectRatio','float',floats(1)),attr('screenWindowCenter','v2f',floats(0,0)),attr('screenWindowWidth','float',floats(1)),attr('chromaticities','chromaticities',floats(.64,.33,.30,.60,.15,.06,.3127,.329)),attr('comments','string',enc.encode('Veldra final render; scene-linear Rec.709/D65; premultiplied RGBA; unfiltered AOVs. '+JSON.stringify(metadata))),new Uint8Array(1)]);
+  const rowSize=8+width*channels.length*4,table=new Uint8Array(height*8),view=new DataView(table.buffer),parts=[header,table];
+  for(let y=0;y<height;y++){view.setBigUint64(y*8,BigInt(header.length+table.length+y*rowSize),true);const row=new Uint8Array(rowSize),d=new DataView(row.buffer);d.setInt32(0,y,true);d.setInt32(4,rowSize-8,true);let offset=8;
+    for(const channel of channels)for(let x=0;x<width;x++){const k=(y*width+x)*4;let value=0;if(channel==='A')value=metadata.transparent?albedo[k+3]/Math.max(1,film[k+3]):1;else if(channel==='Z')value=normal[k+3];else if(channel==='samples')value=film[k+3];else if(channel.startsWith('albedo.'))value=albedo[k+({R:0,G:1,B:2}[channel.at(-1)])];else if(channel.startsWith('normal.'))value=normal[k+({X:0,Y:1,Z:2}[channel.at(-1)])];else value=mean(k,{R:0,G:1,B:2}[channel]);d.setFloat32(offset,Number.isFinite(value)?value:0,true);offset+=4;}parts.push(row);
+  }return new Blob(parts,{type:'image/x-exr'});
+}
+function encodeRGBE(frame){
+  const {width,height,film}=frame,header=new TextEncoder().encode(`#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y ${height} +X ${width}\n`),parts=[header];
+  for(let y=0;y<height;y++){const row=new Uint8Array(width*4);for(let x=0;x<width;x++){const k=(y*width+x)*4,c=[0,1,2].map(a=>Math.max(0,film[k+a]/Math.max(1,film[k+3]))),largest=Math.max(...c);if(largest>1e-32){const e=Math.min(127,Math.floor(Math.log2(largest))+1),scale=256/2**e;for(let a=0;a<3;a++)row[x*4+a]=Math.min(255,Math.floor(c[a]*scale));row[x*4+3]=e+128;}}
+    if(width>=8&&width<=32767){parts.push(new Uint8Array([2,2,width>>8,width&255]));for(let c=0;c<4;c++)for(let x=0;x<width;x+=128){const n=Math.min(128,width-x),chunk=new Uint8Array(n+1);chunk[0]=n;for(let i=0;i<n;i++)chunk[i+1]=row[(x+i)*4+c];parts.push(chunk);}}else parts.push(row);
+  }return new Blob(parts,{type:'image/vnd.radiance'});
+}
+
+return {decodeRGBE,resizeRadiance,loadRenderImages,toneMapRGB,filmRGBA,encodeEXR,encodeRGBE};
+})();
+__modules["src/render/final-renderer.js"]=(()=>{
+const {createTraceKernel,finalRenderWorker} = __modules["src/render/final-kernel.js"];
+const {FINAL_TRACE_WGSL,FINAL_DISPLAY_WGSL} = __modules["src/render/final-wgsl.js"];
+const {filmRGBA} = __modules["src/render/final-image.js"];
+const {renderSettings} = __modules["src/render/final-scene.js"];
+
+
+
+
+function aborted(){return new DOMException('Render cancelled','AbortError');}
+function abortable(promise,signal){return new Promise((resolve,reject)=>{const abort=()=>reject(aborted());if(signal.aborted)return abort();signal.addEventListener('abort',abort,{once:true});promise.then(resolve,reject).finally(()=>signal.removeEventListener('abort',abort));});}
+/** Dedicated final-render job. Cancelling preserves the partial image; starting a new job frees old resources. */
+class FinalRenderer {
+  constructor(canvas,onUpdate=()=>{}){this.canvas=canvas;this.onUpdate=onUpdate;this.state='idle';this.generation=0;this.backend='Not started';this.workers=[];this.buffers=[];this.sample=0;this.partial=0;this.pass='beauty';this.errors=[];}
+  async start(scene,camera,options={}){
+    this.cancel();this.disposeGPU();const generation=++this.generation;const abort=this.abort=new AbortController();this.settings=renderSettings(options);this.view={...this.settings,pass:this.pass};this.scene=scene;this.camera=camera;this.state='preparing';this.sample=0;this.partial=0;this.errors=[];this.fallbackReason='';this.started=performance.now();this.pauseTime=0;this.lastPresent=0;this.frame=null;this.canvas.width=this.settings.width;this.canvas.height=this.settings.height;this.emit();
+    try{
+      if(this.settings.backend!=='cpu')try{await this.initGPU(generation,abort.signal);}catch(error){if(generation!==this.generation||abort.signal.aborted)throw aborted();this.disposeGPU();if(this.settings.backend==='webgpu')throw error;this.fallbackReason=error.message;}
+      if(abort.signal.aborted||generation!==this.generation)throw aborted();
+      if(!this.device){this.freshCanvas();const n=this.settings.width*this.settings.height*4;this.frame={width:this.settings.width,height:this.settings.height,film:new Float32Array(n),normal:new Float32Array(n),albedo:new Float32Array(n)};this.backend=`CPU path tracer · ${Math.max(1,Math.min(4,(navigator.hardwareConcurrency??2)-1))} workers`;}
+      this.state='rendering';this.emit();if(this.device)await this.runGPU(abort.signal);else await this.runCPU(abort.signal);
+      if(abort.signal.aborted)throw aborted();this.state='completed';this.present();this.emit();return this;
+    }catch(error){if(generation===this.generation){if(error.name==='AbortError'){if(this.state!=='error')this.state='cancelled';}else{this.state='error';this.errors.push(error.message);}this.emit();}if(error.name!=='AbortError')throw error;return this;
+    }finally{if(generation===this.generation)this.terminateWorkers();}
+  }
+  freshCanvas(){const next=this.canvas.cloneNode(false);this.canvas.replaceWith(next);this.canvas=next;this.context=null;}
+  emit(){const now=performance.now();this.onUpdate({state:this.state,backend:this.backend,samples:this.sample,progress:this.settings?Math.min(1,(this.sample+this.partial)/this.settings.samples):0,elapsed:this.started?(now-this.started-this.pauseTime-(this.pausedAt?now-this.pausedAt:0))/1000:0,triangles:this.scene?.triangleCount??0,lights:this.scene?.lightCount??0,warnings:this.scene?.warnings??[],fallbackReason:this.fallbackReason,errors:[...this.errors]});}
+  pause(){if(this.state!=='rendering')return;this.state='paused';this.pausedAt=performance.now();this.emit();}
+  resume(){if(this.state!=='paused')return;this.pauseTime+=performance.now()-this.pausedAt;this.pausedAt=0;this.state='rendering';this.wake?.();this.pump?.();this.emit();}
+  cancel(){if(this.pausedAt){this.pauseTime+=performance.now()-this.pausedAt;this.pausedAt=0;}this.abort?.abort();this.wake?.();this.terminateWorkers();if(['preparing','rendering','paused'].includes(this.state)){this.state='cancelled';this.emit();}}
+  async gate(signal){if(signal.aborted)throw aborted();if(this.state==='paused')await abortable(new Promise(resolve=>this.wake=resolve),signal);if(signal.aborted)throw aborted();}
+  setView(options){this.view={...this.view,...options};this.pass=this.view.pass??'beauty';this.present();}
+  terminateWorkers(){for(const worker of this.workers)worker.terminate();this.workers=[];if(this.workerURL)URL.revokeObjectURL(this.workerURL);this.workerURL=null;this.pump=null;}
+  disposeGPU(){for(const b of this.buffers)b.destroy();this.buffers=[];this.device?.destroy();this.device=null;if(this.context){this.context.unconfigure();this.freshCanvas();}}
+  dispose(){this.cancel();this.generation++;this.disposeGPU();this.frame=null;}
+  tiles(size=32){const out=[];for(let y=0;y<this.settings.height;y+=size)for(let x=0;x<this.settings.width;x+=size)out.push({x,y,width:Math.min(size,this.settings.width-x),height:Math.min(size,this.settings.height-y)});return out;}
+  async runCPU(signal){
+    const count=Math.max(1,Math.min(4,(navigator.hardwareConcurrency??2)-1));this.workerURL=URL.createObjectURL(new Blob([`(${finalRenderWorker.toString()})(${createTraceKernel.toString()});`],{type:'text/javascript'}));
+    const ready=[];for(let i=0;i<count;i++){const worker=new Worker(this.workerURL,{name:`Veldra path tracer ${i+1}`});this.workers.push(worker);ready.push(new Promise((resolve,reject)=>{worker.onmessage=e=>e.data.type==='ready'?resolve():reject(Error(e.data.message));worker.onerror=e=>reject(Error(e.message||'Render worker failed'));}));worker.postMessage({type:'init',scene:this.scene,camera:this.camera,settings:this.settings});}
+    await abortable(Promise.all(ready),signal);const tiles=this.tiles(32);
+    for(let sample=0;sample<this.settings.samples;sample++){await this.gate(signal);
+      await abortable(new Promise((resolve,reject)=>{let next=0,finished=0;const idle=new Set(this.workers);this.pump=()=>{if(signal.aborted||this.state==='paused')return;for(const worker of [...idle]){if(next>=tiles.length)break;idle.delete(worker);worker.postMessage({type:'tile',job:{...tiles[next++],sample}});}};
+        for(const worker of this.workers){worker.onerror=e=>reject(Error(e.message||'Render worker failed'));worker.onmessage=e=>{if(signal.aborted)return;if(e.data.type==='error'){reject(Error(e.data.message));return;}if(e.data.type!=='tile')return;const r=e.data.result;this.mergeTile(r);idle.add(worker);finished++;this.partial=finished/tiles.length;if(performance.now()-this.lastPresent>250){this.present();this.emit();}if(finished===tiles.length)resolve();else this.pump();};}this.pump();
+      }),signal);
+      this.sample=sample+1;this.partial=0;this.emit();
+    }
+  }
+  mergeTile(r){const f=this.frame;for(let y=0;y<r.height;y++)for(let x=0;x<r.width;x++){const src=(y*r.width+x)*4,dst=((r.y+y)*f.width+r.x+x)*4;for(let a=0;a<3;a++)f.film[dst+a]+=r.pixels[src+a];f.film[dst+3]++;if(r.normal){for(let a=0;a<4;a++)f.normal[dst+a]=r.normal[src+a];for(let a=0;a<3;a++)f.albedo[dst+a]=r.albedo[src+a];}f.albedo[dst+3]+=r.pixels[src+3];}}
+  async initGPU(generation,signal){
+    const check=()=>{if(generation!==this.generation||signal.aborted)throw aborted();};check();
+    if(!globalThis.isSecureContext||!navigator.gpu)throw Error('WebGPU requires a supported browser and a secure context.');const adapter=await navigator.gpu.requestAdapter({powerPreference:'high-performance'});check();if(!adapter)throw Error('No WebGPU adapter is available.');
+    const bytes=this.settings.width*this.settings.height*16,max=Math.max(bytes,this.scene.triangles.byteLength,this.scene.nodes.byteLength,this.scene.texels.byteLength,this.scene.materials.byteLength,this.scene.lights.byteLength);
+    if(max>adapter.limits.maxStorageBufferBindingSize||max>adapter.limits.maxBufferSize)throw Error('Scene or resolution exceeds this GPU’s storage-buffer limits. Reduce quality or resolution.');
+    const device=await adapter.requestDevice({requiredLimits:{maxStorageBufferBindingSize:Math.max(134217728,max),maxBufferSize:Math.max(268435456,max)}});try{check();}catch(error){device.destroy();throw error;}this.device=device;
+    device.lost.then(info=>{if(generation===this.generation&&info.reason!=='destroyed'){this.errors.push('GPU device lost: '+info.message);this.state='error';this.abort?.abort();this.emit();}});
+    device.addEventListener('uncapturederror',e=>{if(generation===this.generation){this.errors.push(e.error.message);this.state='error';this.abort?.abort();this.emit();}});
+    device.pushErrorScope('validation');let scopeOpen=true;try{
+      const module=device.createShaderModule({code:FINAL_TRACE_WGSL,label:'Veldra BVH path-trace compute'}),display=device.createShaderModule({code:FINAL_DISPLAY_WGSL,label:'Veldra film / AOV display'});
+      for(const shader of [module,display]){const info=await shader.getCompilationInfo();check();const errors=info.messages.filter(m=>m.type==='error');if(errors.length)throw Error(errors.map(m=>`${m.lineNum}:${m.linePos} ${m.message}`).join('\n'));}
+      const pipeline=await device.createComputePipelineAsync({layout:'auto',compute:{module,entryPoint:'main'}});check();this.pipeline=pipeline;const format=navigator.gpu.getPreferredCanvasFormat();
+      const displayPipeline=await device.createRenderPipelineAsync({layout:'auto',vertex:{module:display,entryPoint:'vs'},fragment:{module:display,entryPoint:'fs',targets:[{format}]},primitive:{topology:'triangle-list'}});check();this.displayPipeline=displayPipeline;
+      const buffer=(size,usage,data)=>{const b=device.createBuffer({size:Math.max(16,size),usage,mappedAtCreation:!!data});if(data){new Float32Array(b.getMappedRange()).set(data);b.unmap();}this.buffers.push(b);return b;},storage=GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_SRC;
+      this.params=buffer(160,GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST);const data=[this.scene.triangles,this.scene.nodes,this.scene.materials,this.scene.lights,this.scene.texels].map(a=>buffer(a.byteLength,GPUBufferUsage.STORAGE,a));this.filmBuffer=buffer(bytes,storage);this.normalBuffer=buffer(bytes,storage);this.albedoBuffer=buffer(bytes,storage);
+      this.bindGroup=device.createBindGroup({layout:this.pipeline.getBindGroupLayout(0),entries:[this.params,...data,this.filmBuffer,this.normalBuffer,this.albedoBuffer].map((b,binding)=>({binding,resource:{buffer:b}}))});
+      this.displayParams=buffer(32,GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST);this.displayGroup=device.createBindGroup({layout:this.displayPipeline.getBindGroupLayout(0),entries:[this.displayParams,this.filmBuffer,this.normalBuffer,this.albedoBuffer].map((b,binding)=>({binding,resource:{buffer:b}}))});
+      scopeOpen=false;const error=await device.popErrorScope();check();if(error)throw Error(error.message);this.freshCanvas();this.context=this.canvas.getContext('webgpu');if(!this.context)throw Error('Could not create the final-render WebGPU canvas');this.context.configure({device,format,alphaMode:'opaque'});
+      this.backend=`WebGPU compute path tracer${adapter.info?.device?' · '+adapter.info.device:''}`;this.adapterInfo={vendor:adapter.info?.vendor,architecture:adapter.info?.architecture,device:adapter.info?.device,description:adapter.info?.description};
+    }catch(error){if(scopeOpen)try{await device.popErrorScope();}catch{}throw error;}
+  }
+  uniform(tile,sample){const b=new ArrayBuffer(160),u=new Uint32Array(b),f=new Float32Array(b),c=this.camera,s=this.settings;u.set([s.width,s.height,sample,s.bounces,tile.x,tile.y,tile.width,tile.height]);f.set([...c.eye,c.lensRadius,...c.forward,c.focus,...c.right,c.aspect,...c.up,c.tanFov,...this.scene.environment,...this.scene.sky,this.scene.intensity,this.scene.epsilon,this.scene.lightCount,s.transparent?1:0,s.fireflyClamp,c.orthographic?1:0,c.scale,0,0],8);return b;}
+  async runGPU(signal){const tiles=this.tiles(64);for(let sample=0;sample<this.settings.samples;sample++){for(let i=0;i<tiles.length;i++){await this.gate(signal);const tile=tiles[i],device=this.device;device.queue.writeBuffer(this.params,0,this.uniform(tile,sample));const encoder=device.createCommandEncoder({label:'Final render tile'}),pass=encoder.beginComputePass();pass.setPipeline(this.pipeline);pass.setBindGroup(0,this.bindGroup);pass.dispatchWorkgroups(Math.ceil(tile.width/8),Math.ceil(tile.height/8));pass.end();device.queue.submit([encoder.finish()]);await abortable(device.queue.onSubmittedWorkDone(),signal);this.partial=(i+1)/tiles.length;if(performance.now()-this.lastPresent>100){this.present();this.emit();await new Promise(r=>setTimeout(r,0));}}this.sample=sample+1;this.partial=0;this.emit();}}
+  present(){if(!this.settings)return;this.lastPresent=performance.now();if(this.device&&this.context){const v=this.view;this.device.queue.writeBuffer(this.displayParams,0,new Float32Array([this.settings.width,this.settings.height,v.exposure,{aces:0,reinhard:1,linear:2}[v.toneMap]??0,v.denoise?1:0,{beauty:0,albedo:1,normal:2,depth:3,samples:4}[v.pass]??0,v.focusDistance,this.settings.transparent?1:0]));const encoder=this.device.createCommandEncoder(),pass=encoder.beginRenderPass({colorAttachments:[{view:this.context.getCurrentTexture().createView(),loadOp:'clear',storeOp:'store',clearValue:{r:0,g:0,b:0,a:1}}]});pass.setPipeline(this.displayPipeline);pass.setBindGroup(0,this.displayGroup);pass.draw(3);pass.end();this.device.queue.submit([encoder.finish()]);}
+    else if(this.frame){const ctx=this.canvas.getContext('2d');ctx.putImageData(new ImageData(filmRGBA(this.frame,{...this.view,transparent:this.settings.transparent}),this.frame.width,this.frame.height),0,0);}}
+  async snapshot(){if(this.device){const size=this.settings.width*this.settings.height*16,staging=[];try{const encoder=this.device.createCommandEncoder();for(const source of [this.filmBuffer,this.normalBuffer,this.albedoBuffer]){const b=this.device.createBuffer({size,usage:GPUBufferUsage.COPY_DST|GPUBufferUsage.MAP_READ});staging.push(b);encoder.copyBufferToBuffer(source,0,b,0,size);}this.device.queue.submit([encoder.finish()]);await Promise.all(staging.map(b=>b.mapAsync(GPUMapMode.READ)));const data=staging.map(b=>new Float32Array(b.getMappedRange().slice(0)));return {width:this.settings.width,height:this.settings.height,film:data[0],normal:data[1],albedo:data[2]};}finally{for(const b of staging){b.unmap();b.destroy();}}}
+    if(!this.frame)throw Error('Render an image before exporting.');return {...this.frame,film:this.frame.film.slice(),normal:this.frame.normal.slice(),albedo:this.frame.albedo.slice()};}
+}
+
+return {FinalRenderer};
+})();
+__modules["src/render/final-ui.js"]=(()=>{
+const {FinalRenderer} = __modules["src/render/final-renderer.js"];
+const {FINAL_DEFAULTS,MATERIAL_PRESETS,renderSettings,renderCamera,compileRenderScene} = __modules["src/render/final-scene.js"];
+const {loadRenderImages,filmRGBA,encodeEXR,encodeRGBE} = __modules["src/render/final-image.js"];
+const {MENUS,TOOLBARS} = __modules["src/ui/commands.js"];
+const {escape,icon,toast} = __modules["src/ui/ui.js"];
+const {download} = __modules["src/core/io.js"];
+
+
+
+
+
+
+const STYLE=`
+#final-render-launch{margin-right:8px;font-weight:650;color:var(--accent,#28766b)}
+#final-render-dialog{padding:0;border:1px solid var(--border,#c6ced1);border-radius:12px;width:min(1460px,96vw);max-width:96vw;height:min(920px,94vh);max-height:94vh;background:var(--panel,#f7f8fa);color:var(--text,#283337);box-shadow:0 24px 100px #0007;overflow:hidden}
+#final-render-dialog::backdrop{background:#07111788;backdrop-filter:blur(3px)}
+#final-render-dialog[open]{display:flex;flex-direction:column}#final-render-dialog *{box-sizing:border-box}
+.fr-header{display:flex;align-items:center;gap:16px;padding:16px 22px;border-bottom:1px solid var(--border,#d9dfe2)}.fr-header h2{font-size:20px;line-height:1.2;margin:3px 0 0;letter-spacing:-.5px}.fr-kicker{font-size:10px;font-weight:700;letter-spacing:1.8px;color:var(--muted,#78868e)}.fr-close{margin-left:auto;font-size:24px!important;line-height:1}.fr-badge{font-size:11px;padding:5px 9px;background:#367c6918;border:1px solid #367c6933;border-radius:20px;color:var(--accent,#28776b)}
+.fr-toolbar{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border,#d9dfe2);flex-wrap:wrap}.fr-toolbar svg{width:16px;height:16px;stroke-width:1.7}.fr-toolbar button{display:inline-flex;align-items:center;gap:6px}.fr-spacer{flex:1}#final-render-dialog button,#final-render-dialog select,#final-render-dialog input{font:inherit;font-size:12px}#final-render-dialog button{padding:7px 11px;border:1px solid var(--border,#cbd4d7);border-radius:5px;background:var(--panel,#fff);color:inherit;cursor:pointer}#final-render-dialog button:hover{filter:brightness(.95)}#final-render-dialog button:disabled{opacity:.4;cursor:default}#final-render-dialog button.fr-primary{background:#2e766b;color:white;border-color:#2e766b;font-weight:650}.fr-toolbar .fr-small{padding:5px 8px}#final-render-dialog select,#final-render-dialog input{border:1px solid var(--border,#cbd4d7);padding:6px 8px;border-radius:4px;background:var(--panel,#fff);color:inherit;min-width:0;width:100%}#final-render-dialog input[type=checkbox]{width:15px;height:15px;accent-color:#367b6d}#final-render-dialog input[type=color]{height:30px;padding:3px}#final-render-dialog button:focus-visible,#final-render-dialog input:focus-visible,#final-render-dialog select:focus-visible{outline:2px solid #389781;outline-offset:2px}
+.fr-body{display:flex;min-height:0;flex:1}.fr-view{display:flex;flex-direction:column;min-width:0;flex:1;background:#171d21}.fr-stage{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:auto;padding:24px;background-color:#171d21;background-image:linear-gradient(45deg,#ffffff03 25%,transparent 25%,transparent 75%,#ffffff03 75%),linear-gradient(45deg,#ffffff03 25%,transparent 25%,transparent 75%,#ffffff03 75%);background-size:24px 24px;background-position:0 0,12px 12px}.fr-stage canvas,.fr-stage img{display:block;width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain;box-shadow:0 5px 40px #0005;background:repeating-conic-gradient(#353c41 0% 25%,#2d3338 0% 50%) 50% / 24px 24px}.fr-stage.native{display:block}.fr-stage.native canvas{max-width:none;max-height:none}.fr-reference{position:absolute;pointer-events:none}.fr-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;background:#171d21;color:#b2c0c7;gap:10px;padding:28px}.fr-empty[hidden],.fr-reference[hidden]{display:none}.fr-empty svg{width:52px;height:52px;stroke-width:1;opacity:.5}.fr-empty h3{font-size:19px;margin:8px 0 0;color:#e0e7eb}.fr-empty p{max-width:450px;font-size:13px;line-height:1.7;margin:0}.fr-imagebar{padding:8px 15px;color:#9fadb5;font-size:11px;border-top:1px solid #ffffff10;display:flex;gap:14px;flex-wrap:wrap}.fr-imagebar span:last-child{margin-left:auto}
+.fr-sidebar{width:328px;min-width:270px;display:flex;flex-direction:column;border-left:1px solid var(--border,#d9dfe2);background:var(--panel,#f7f8fa)}.fr-tabs{display:flex;flex-wrap:wrap;padding:9px 10px;gap:5px;border-bottom:1px solid var(--border,#d9dfe2)}#final-render-dialog .fr-tabs button{font-size:11px;padding:5px 8px;border-color:transparent;background:transparent}.fr-tabs button.active{background:#367b6d18!important;color:var(--accent,#28766b)!important;border-color:#367b6d33!important}.fr-fields{padding:17px 18px;overflow-y:auto;flex:1;min-height:0}.fr-fields h3{font-size:14px;margin:0 0 6px}.fr-fields h4{font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:22px 0 11px;color:var(--muted,#7d8b91)}.fr-fields p{font-size:11px;line-height:1.65;color:var(--muted,#73828a);margin:7px 0 15px}.fr-field{display:grid;grid-template-columns:1fr 128px;align-items:center;gap:10px;margin:9px 0;font-size:12px}.fr-check{display:flex;align-items:center;gap:8px;font-size:12px;margin:12px 0}.fr-fields .fr-row{display:flex;gap:7px;margin:12px 0}.fr-fields .fr-row>*{flex:1}.fr-note{font-size:11px;line-height:1.65;border-left:2px solid #6c9789;padding:9px 10px;background:#6197830b}.fr-light{padding:11px;border:1px solid var(--border,#d0d8dc);border-radius:6px;margin:12px 0}.fr-light h4{margin:0 0 8px}.fr-light .fr-field{grid-template-columns:1fr 110px}.fr-vec{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:8px 0}.fr-vec label{display:flex;align-items:center;gap:4px;font-size:10px}.fr-light .fr-remove{width:100%;font-size:11px!important;margin-top:8px}.fr-footer{border-top:1px solid var(--border,#d9dfe2);padding:11px 17px;display:flex;gap:12px;align-items:center;font-size:11px}.fr-footer progress{height:5px;max-width:220px;min-width:60px;flex:1;accent-color:#3c8b79}.fr-error{color:#b64235;padding:0 17px;max-height:76px;overflow:auto;font-size:12px;white-space:pre-wrap}.fr-error:empty{display:none}.fr-warning{color:#c7a36a!important}.fr-status{min-width:100px}.fr-fields details{font-size:11px;line-height:1.6;margin-top:15px}.fr-fields summary{cursor:pointer;font-weight:650}
+body.dark #final-render-dialog{background:#232b30;color:#dce4e8}body.dark #final-render-dialog input,body.dark #final-render-dialog select,body.dark #final-render-dialog button,body.dark .fr-sidebar{background:#263137;color:#dce4e8;border-color:#465159}body.dark .fr-header,body.dark .fr-toolbar,body.dark .fr-tabs,body.dark .fr-footer,body.dark .fr-sidebar{border-color:#3c484f}
+@media(max-width:850px){#final-render-dialog{height:96vh;max-height:96vh;width:98vw;max-width:98vw}.fr-body{flex-direction:column}.fr-view{min-height:220px;flex:1}.fr-sidebar{width:100%;min-height:240px;height:38%;border-left:0;border-top:1px solid var(--border,#d9dfe2)}.fr-fields{padding:10px 16px}.fr-tabs{flex-wrap:nowrap}.fr-tabs button{flex:1}.fr-header{padding:10px 15px}.fr-stage{padding:10px}.fr-toolbar{padding:8px;gap:5px}.fr-footer{flex-wrap:wrap}.fr-badge{display:none}}
+`;
+const field=(key,label,value,min,max,step='any',prefix='setting')=>`<label class="fr-field"><span>${escape(label)}</span><input type="number" data-${prefix}="${key}" value="${escape(value)}" min="${min}" max="${max}" step="${step}"></label>`;
+const colorField=(key,label,value,prefix='setting')=>`<label class="fr-field"><span>${escape(label)}</span><input type="color" data-${prefix}="${key}" value="${escape(value)}"></label>`;
+const selectField=(key,label,value,options,prefix='setting')=>`<label class="fr-field"><span>${escape(label)}</span><select data-${prefix}="${key}">${options.map(o=>{const [id,name]=Array.isArray(o)?o:[o,o];return `<option value="${escape(id)}" ${id===value?'selected':''}>${escape(name)}</option>`;}).join('')}</select></label>`;
+const check=(key,label,value)=>`<label class="fr-check"><input type="checkbox" data-setting="${key}" ${value?'checked':''}>${escape(label)}</label>`;
+
+function installFinalRendering(app){
+  if(app.finalRender)return app.finalRender;
+  const style=document.createElement('style');style.id='final-render-style';style.textContent=STYLE;document.head.append(style);
+  const root=document.createElement('dialog');root.id='final-render-dialog';root.setAttribute('aria-labelledby','fr-title');root.innerHTML=`
+    <header class="fr-header"><div><div class="fr-kicker">VELDRA / FINAL RENDERING</div><h2 id="fr-title">Render studio</h2></div><span class="fr-badge">Progressive path tracing</span><button class="fr-close" data-fr="close" aria-label="Close render window">×</button></header>
+    <div class="fr-toolbar"><button class="fr-primary" id="fr-start" data-fr="start">${icon('play')} Render</button><button id="fr-pause" data-fr="pause" disabled>Pause</button><button id="fr-stop" data-fr="stop" disabled>Stop</button><span class="fr-spacer"></span><select id="fr-pass" aria-label="Render pass" style="width:128px"><option value="beauty">Beauty</option><option value="albedo">Albedo</option><option value="normal">Normals</option><option value="depth">Depth</option><option value="samples">Sample count</option></select><button data-fr="zoom" class="fr-small">Fit / 1:1</button><button data-fr="store" id="fr-store" disabled>Store A</button><button data-fr="compare" id="fr-compare" disabled>Compare A</button><button data-fr="export" id="fr-export" disabled>${icon('save')} Save image</button></div>
+    <div class="fr-body"><section class="fr-view"><div class="fr-stage" id="fr-stage"><canvas id="fr-canvas" width="960" height="640" aria-label="Final rendered image"></canvas><img id="fr-reference" class="fr-reference" alt="Stored comparison render" hidden><div class="fr-empty" id="fr-empty">${icon('render')}<h3>From model to final image.</h3><p>Render the active camera with real light transport, materials and soft shadows. Weave previews are included without baking.</p><button class="fr-primary" data-fr="start">Render current scene</button></div></div><div class="fr-imagebar"><span id="fr-image-info">No image rendered</span><span id="fr-stale"></span><span id="fr-backend">Automatic · WebGPU / CPU</span></div></section>
+    <aside class="fr-sidebar"><nav class="fr-tabs" aria-label="Render settings">${[['render','Render'],['materials','Materials'],['lighting','Lighting'],['camera','Scene'],['output','Output']].map(([id,name])=>`<button data-fr-tab="${id}" class="${id==='render'?'active':''}">${name}</button>`).join('')}</nav><div class="fr-fields" id="fr-fields"></div></aside></div>
+    <div id="fr-error" class="fr-error" role="alert"></div><footer class="fr-footer"><span class="fr-status" id="fr-status">Ready to render</span><progress id="fr-progress" value="0" max="1" aria-label="Render progress"></progress><span id="fr-samples">0 samples</span><span class="fr-spacer"></span><span id="fr-scene-stats"></span><span id="fr-time">0.0 s</span></footer>
+    <input id="fr-file" type="file" hidden accept=".png,.jpg,.jpeg,.webp,.hdr">
+  `;document.body.append(root);
+  const $=id=>root.querySelector(id);let tab='render',materialId=null,request=0,preparing=false,lastStatus=null,reference=null,exportFormat='png';
+  const settings=()=>renderSettings(app.doc.extra.finalRender??{});
+  const renderer=new FinalRenderer($('#fr-canvas'),status=>{lastStatus=status;$('#fr-status').textContent={idle:'Ready',preparing:'Preparing scene',rendering:'Rendering',paused:'Paused',completed:'Completed',cancelled:'Stopped',error:'Render failed'}[status.state]??status.state;$('#fr-progress').value=status.progress;$('#fr-samples').textContent=`${status.samples} / ${renderer.settings?.samples??settings().samples} samples`;$('#fr-backend').textContent=status.backend;$('#fr-backend').title=status.fallbackReason||'';$('#fr-time').textContent=status.elapsed.toFixed(1)+' s';$('#fr-scene-stats').textContent=`${status.triangles.toLocaleString()} triangles · ${status.lights} lights`;$('#fr-pause').disabled=!['rendering','paused'].includes(status.state);$('#fr-pause').textContent=status.state==='paused'?'Resume':'Pause';$('#fr-stop').disabled=!['preparing','rendering','paused'].includes(status.state);const image=renderer.frame||renderer.device;$('#fr-export').disabled=!image;$('#fr-store').disabled=!image;if(status.errors.length)$('#fr-error').textContent=status.errors.join('\n');});
+  function saveSettings(next){app.doc.transaction('Render settings',()=>app.doc.extra.finalRender=renderSettings(next));}
+  function updateView(){const s=settings();renderer.setView({exposure:s.exposure,toneMap:s.toneMap,denoise:s.denoise,focusDistance:s.focusDistance,pass:$('#fr-pass').value});}
+  function object(){return app.doc.get(materialId)??app.doc.selected()[0]??app.doc.objects[0];}
+  function editMaterial(change){const o=object();if(!o)return;app.doc.transaction('Render material',()=>{const values={...change};if('color' in values){o.color=values.color;delete values.color;}o.material={metallic:0,roughness:.4,...o.material,...values};app.doc.touch(o);});}
+  function refresh(){const s=settings(),body=$('#fr-fields');root.querySelectorAll('[data-fr-tab]').forEach(b=>b.classList.toggle('active',b.dataset.frTab===tab));
+    if(tab==='render')body.innerHTML=`<h3>Image quality</h3><p>A frozen scene and camera are traced progressively. Exposure and denoising can be changed without restarting.</p>${selectField('preset','Preset','custom',[['custom','Custom'],['draft','Draft · 32 spp'],['standard','Standard · 128 spp'],['production','Production · 512 spp']],'action')}${field('width','Width (px)',s.width,16,8192,1)}${field('height','Height (px)',s.height,16,8192,1)}${field('samples','Samples per pixel',s.samples,1,65536,1)}${field('bounces','Path depth',s.bounces,1,32,1)}${field('quality','Tessellation quality',s.quality,.25,4,.25)}${selectField('backend','Engine',s.backend,[['auto','Automatic'],['webgpu','WebGPU only'],['cpu','CPU workers']])}<h4>Image development</h4>${field('exposure','Exposure (EV)',s.exposure,-16,16,.25)}${selectField('toneMap','Tone mapping',s.toneMap,[['aces','ACES fitted'],['reinhard','Reinhard'],['linear','Linear / sRGB']])}${check('denoise','Edge-aware denoising',s.denoise)}${field('fireflyClamp','Radiance clamp (0 = off)',s.fireflyClamp,0,1000000)}<div class="fr-note">Denoising is a normal-, depth- and albedo-guided spatial filter. Raw HDR and EXR exports remain unfiltered. Clamping is optional and introduces bias.</div>`;
+    else if(tab==='camera')body.innerHTML=`<h3>Scene & camera</h3><p>The chosen modeling viewport supplies the camera position, projection and field of view.</p>${selectField('cameraName','Camera',s.cameraName??app.activeView,Object.keys(app.cameras))}${field('aperture',`Aperture diameter (${app.doc.units})`,s.aperture,0,1000)}${field('focusDistance',`Focus distance (${app.doc.units})`,s.focusDistance,.001,1e8)}<div class="fr-row"><button data-fr="focus">Focus on camera target</button></div><h4>Scene inclusion</h4>${check('includePreviews','Include live Weave geometry',s.includePreviews)}${check('ground','Render ground plane',s.ground)}${colorField('groundColor','Ground color',s.groundColor)}${field('groundZ','Ground elevation',s.groundZ,-1e8,1e8)}<button data-fr="ground">Place ground below model</button>${check('transparent','Transparent camera background',s.transparent)}<p>Hidden objects and hidden layers are excluded. Curves and points are construction geometry: use Pipe or create a surface to render them.</p>`;
+    else if(tab==='materials'){const o=object();if(!o){body.innerHTML='<h3>Materials</h3><p>Create an object or bake Weave geometry before assigning a material.</p><button data-fr="bake">Bake Weave geometry</button>';return;}materialId=o.id;const m=o.material??{};body.innerHTML=`<h3>Surface materials</h3><p>Assignments are saved with the document and support undo. Unbaked previews retain their graph appearance.</p>${selectField('object','Object',o.id,app.doc.objects.map(o=>[o.id,o.name]),'action')}${selectField('materialPreset','Preset','custom',['custom',...Object.keys(MATERIAL_PRESETS)],'action')}${colorField('color','Base color',o.color,'material')}${field('metallic','Metallic',m.metallic??0,0,1,.05,'material')}${field('roughness','Roughness',m.roughness??.4,.025,1,.025,'material')}${field('transmission','Transmission',m.transmission??0,0,1,.05,'material')}${field('ior','Index of refraction',m.ior??1.5,1.0001,3,.01,'material')}<p>Transmission uses ideal smooth dielectric interfaces; the roughness slider affects the opaque GGX lobe, not frosted glass.</p><h4>Emission</h4>${field('emission','Emission strength',m.emission??0,0,1000000,.5,'material')}${colorField('emissionColor','Emission color',m.emissionColor??o.color,'material')}<h4>Base-color texture</h4>${selectField('pattern','Pattern',m.pattern??'none',['none','checker'],'material')}${colorField('checkerColor','Checker color',m.checkerColor??'#eeeeee','material')}${field('textureScale',`Repeat size (${app.doc.units})`,m.textureScale??1,.000001,1e6,.1,'material')}${field('textureRotation','Rotation (°)',m.textureRotation??0,-360,360,5,'material')}<div class="fr-row"><button data-fr="texture">Load image…</button><button data-fr="remove-texture">Clear image</button></div><p>${m.texture?'Embedded image assigned.':'No bitmap assigned.'} Textures use world-space box projection.</p><button data-fr="copy-material">Apply to viewport selection</button>`;}
+    else if(tab==='lighting'){body.innerHTML=`<h3>Environment & lighting</h3><p>Image environments use luminance-weighted importance sampling. Rectangular lights and emissive objects participate in reflections and indirect lighting.</p>${colorField('environmentColor','Sky color',s.environmentColor)}${field('environmentStrength','Environment intensity',s.environmentStrength,0,100,.1)}${field('environmentRotation','Rotation (°)',s.environmentRotation,-360,360,5)}<div class="fr-row"><button data-fr="environment">Load HDR / image…</button><button data-fr="remove-environment">Clear</button></div><p>${s.environmentImage?'Embedded image environment active.':'Procedural studio sky active.'}</p><div class="fr-row"><button data-fr="studio">Studio rig</button><button data-fr="black">Black environment</button></div><h4>Scene lights</h4><div class="fr-row"><select id="fr-light-type" aria-label="New light type"><option value="area">Rectangle</option><option value="point">Point</option><option value="spot">Spot</option><option value="sun">Sun</option></select><button data-fr="add-light">Add light</button></div>`+s.lights.map((l,i)=>{const vec=(key,label,value)=>`<div class="fr-kicker">${label}</div><div class="fr-vec">${['X','Y','Z'].map((a,j)=>`<label>${a}<input type="number" step="any" data-light="${i}" data-light-key="${key}.${j}" value="${value?.[j]??0}" aria-label="${label} ${a}"></label>`).join('')}</div>`;return `<div class="fr-light"><h4>${escape(l.name??l.type)}</h4><label class="fr-check"><input type="checkbox" data-light="${i}" data-light-key="enabled" ${l.enabled!==false?'checked':''}>Enabled · ${escape(l.type)}</label><label class="fr-field"><span>Color</span><input type="color" data-light="${i}" data-light-key="color" value="${escape(l.color??'#ffffff')}"></label><label class="fr-field"><span>Intensity</span><input type="number" min="0" max="1000000000" step="any" data-light="${i}" data-light-key="power" value="${l.power??1}"></label>${l.type!=='sun'?vec('position','Position',l.position):''}${l.type!=='point'?vec('direction',l.type==='sun'?'Direction toward sun':'Emission direction',l.direction):''}${(l.type==='area'?['width','height']:l.type==='sun'?['angle']:l.type==='spot'?['cone']:[]).map(key=>`<label class="fr-field"><span>${key}</span><input type="number" min=".001" step="any" data-light="${i}" data-light-key="${key}" value="${l[key]??10}"></label>`).join('')}<button class="fr-remove" data-fr="remove-light" data-index="${i}">Remove light</button></div>`;}).join('');}
+    else body.innerHTML=`<h3>Image output</h3><p>Save the current progressive result at its actual pixel resolution, including partially completed renders.</p>${selectField('format','File format',exportFormat,[['png','PNG · 8-bit RGBA'],['jpeg','JPEG · 8-bit RGB'],['hdr','Radiance HDR · RGBE'],['exr','OpenEXR · float AOVs']],'action')}<button class="fr-primary" data-fr="export">Save current image</button><h4>Render passes</h4><div class="fr-note">Beauty · Albedo · World normals · Camera depth · Sample count</div><p>PNG and JPEG export the selected display pass with exposure, tone mapping and optional denoising. HDR exports scene-linear beauty. EXR stores unfiltered float RGBA, albedo, normal, depth and per-pixel sample count, with no exposure or tone mapping baked in.</p><h4>Image comparison</h4><p>Store A saves the currently developed image for side-by-side-in-time comparison. Compare A toggles it over the current render.</p><h4>Rendering notes</h4><p>Final rendering is independent of viewport grid, selection outlines and control points. Settings, lights and embedded textures are stored in .veldra documents.</p><details><summary>Current scene diagnostics</summary><pre style="white-space:pre-wrap">${escape([...(lastStatus?.warnings??[]),...(lastStatus?.fallbackReason?[lastStatus.fallbackReason]:[])].join('\n')||'No warnings.')}</pre></details>`;
+  }
+  async function start(overrides={}){const id=++request;renderer.cancel();preparing=true;$('#fr-error').textContent='';$('#fr-status').textContent='Preparing geometry';$('#fr-stop').disabled=false;
+    try{const s=renderSettings({...settings(),...overrides});saveSettings(s);const camera=renderCamera(app.cameras[s.cameraName]??app.cameras[app.activeView],s);app.graph.evaluate({document:app.doc,version:app.doc.version});app.updatePreviews();const entries=structuredClone([...app.doc.visibleObjects(),...(s.includePreviews?app.previews:[])]),images=await loadRenderImages(entries,s);if(id!==request)return;await new Promise(resolve=>setTimeout(resolve,0));if(id!==request)return;const scene=compileRenderScene(entries,s,images);$('#fr-empty').hidden=true;$('#fr-reference').hidden=true;$('#fr-stale').textContent='';$('#fr-image-info').textContent=`${s.width} × ${s.height} px · ${s.cameraName??app.activeView}`;preparing=false;await renderer.start(scene,camera,s);
+    }catch(error){if(id===request){$('#fr-error').textContent=error.message;$('#fr-status').textContent='Render failed';toast(error.message,true);}}
+    finally{if(id===request){preparing=false;$('#fr-stop').disabled=!['preparing','rendering','paused'].includes(renderer.state);}}
+  }
+  function stop(){request++;preparing=false;renderer.cancel();$('#fr-stop').disabled=true;}
+  function show(nextTab=tab){tab=nextTab;if(!root.open)root.showModal();refresh();}
+  async function developedCanvas(){const frame=await renderer.snapshot(),canvas=document.createElement('canvas');canvas.width=frame.width;canvas.height=frame.height;canvas.getContext('2d').putImageData(new ImageData(filmRGBA(frame,{...renderer.view,transparent:renderer.settings.transparent}),frame.width,frame.height),0,0);return canvas;}
+  async function exportImage(format=exportFormat){const suffix=(renderer.view?.pass??'beauty'),name=`${app.doc.name}-${suffix}`;if(format==='exr'||format==='hdr'){const frame=await renderer.snapshot(),blob=format==='exr'?encodeEXR(frame,{renderer:renderer.backend,samples:renderer.sample,transparent:renderer.settings.transparent,camera:renderer.camera}):encodeRGBE(frame);download(blob,`${app.doc.name}.${format}`);return;}const canvas=await developedCanvas();if(format==='jpeg'){const ctx=canvas.getContext('2d');ctx.globalCompositeOperation='destination-over';ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);}const blob=await new Promise(resolve=>canvas.toBlob(resolve,format==='jpeg'?'image/jpeg':'image/png',.95));if(!blob)throw Error('Image encoder failed');download(blob,`${name}.${format==='jpeg'?'jpg':'png'}`);}
+  function chooseImage(kind){$('#fr-file').dataset.kind=kind;$('#fr-file').click();}
+  $('#fr-file').onchange=async e=>{const file=e.target.files[0],kind=e.target.dataset.kind;e.target.value='';if(!file)return;try{if(file.size>32*1024*1024)throw Error('Choose an image below 32 MiB');const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(Error('Unable to read image'));reader.readAsDataURL(file);});let source=String(data);if(file.name.toLowerCase().endsWith('.hdr'))source=source.replace(/^data:[^;,]*/, 'data:image/vnd.radiance');await loadRenderImages(kind==='texture'?[{material:{texture:source}}]:[],{environmentImage:kind==='environment'?source:''});if(kind==='environment')saveSettings({...settings(),environmentImage:source});else editMaterial({texture:source});refresh();}catch(error){$('#fr-error').textContent=error.message;}};
+  root.addEventListener('change',e=>{const t=e.target;try{
+    if(t.id==='fr-pass'){renderer.setView({pass:t.value});return;}
+    if(t.dataset.setting){const key=t.dataset.setting,value=t.type==='checkbox'?t.checked:t.type==='number'?Number(t.value):t.value;if(t.type==='number'&&!Number.isFinite(value))throw Error('Enter a finite number');saveSettings({...settings(),[key]:value});if(['exposure','toneMap','denoise'].includes(key))updateView();return;}
+    if(t.dataset.material){const value=t.type==='number'?Number(t.value):t.value;if(t.type==='number'&&(!Number.isFinite(value)||!t.checkValidity()))throw Error('Material value is outside its allowed range');editMaterial({[t.dataset.material]:value});return;}
+    if(t.dataset.light!==undefined){const s=settings(),l=s.lights[Number(t.dataset.light)],[key,axis]=t.dataset.lightKey.split('.'),value=t.type==='checkbox'?t.checked:t.type==='number'?Number(t.value):t.value;if(t.type==='number'&&!Number.isFinite(value))throw Error('Enter a finite light value');if(axis!==undefined){l[key]??=[0,0,0];l[key][Number(axis)]=value;}else l[key]=value;saveSettings(s);return;}
+    const action=t.dataset.action;if(action==='object'){materialId=t.value;refresh();}else if(action==='materialPreset'){if(MATERIAL_PRESETS[t.value])editMaterial(MATERIAL_PRESETS[t.value]);refresh();}else if(action==='format'){exportFormat=t.value;}else if(action==='preset'){const presets={draft:{width:640,height:426,samples:32,bounces:4,quality:1},standard:{width:1200,height:800,samples:128,bounces:8,quality:1.5},production:{width:1920,height:1080,samples:512,bounces:12,quality:2}};if(presets[t.value])saveSettings({...settings(),...presets[t.value]});refresh();}
+  }catch(error){$('#fr-error').textContent=error.message;}});
+  root.addEventListener('click',async e=>{const t=e.target.closest('[data-fr],[data-fr-tab]');if(!t)return;try{if(t.dataset.frTab){tab=t.dataset.frTab;refresh();return;}const action=t.dataset.fr;
+    if(action==='start')await start();else if(action==='close'){stop();root.close();}else if(action==='stop')stop();else if(action==='pause'){renderer.state==='paused'?renderer.resume():renderer.pause();}else if(action==='zoom')$('#fr-stage').classList.toggle('native');else if(action==='export')await exportImage();
+    else if(action==='store'){const canvas=await developedCanvas();reference=canvas.toDataURL('image/png');$('#fr-reference').src=reference;$('#fr-compare').disabled=false;}
+    else if(action==='compare'){if(reference){$('#fr-reference').hidden=!$('#fr-reference').hidden;t.textContent=$('#fr-reference').hidden?'Compare A':'Showing A';}}
+    else if(action==='focus'){const c=app.cameras[settings().cameraName]??app.cameras[app.activeView];saveSettings({...settings(),focusDistance:c.radius});refresh();}
+    else if(action==='ground'){saveSettings({...settings(),groundZ:app.doc.bounds().min[2]-.001});refresh();}
+    else if(action==='texture'||action==='environment')chooseImage(action);
+    else if(action==='remove-texture'){editMaterial({texture:''});refresh();}else if(action==='remove-environment'){saveSettings({...settings(),environmentImage:''});refresh();}
+    else if(action==='black'){saveSettings({...settings(),environmentStrength:0});refresh();}
+    else if(action==='studio'){saveSettings({...settings(),environmentStrength:.35,environmentImage:'',lights:[{type:'area',name:'Key softbox',position:[-12,-12,24],direction:[.4,.4,-1],width:12,height:10,color:'#fff0de',power:10},{type:'area',name:'Fill softbox',position:[15,4,16],direction:[-1,-.3,-1],width:8,height:12,color:'#dcecff',power:5}]});refresh();}
+    else if(action==='add-light'){const s=settings();if(s.lights.length>=64)throw Error('Maximum 64 user lights');const type=$('#fr-light-type').value;s.lights.push({type,name:`${type} ${s.lights.length+1}`,color:'#ffffff',power:type==='area'?8:type==='sun'?3:800,position:[-10,-10,20],direction:type==='sun'?[-1,-1,2]:[0,0,-1],width:10,height:10,angle:3,cone:45});saveSettings(s);refresh();}
+    else if(action==='remove-light'){const s=settings();s.lights.splice(Number(t.dataset.index),1);saveSettings(s);refresh();}
+    else if(action==='bake'){app.bake();refresh();}else if(action==='copy-material'){const source=object(),selected=app.doc.selected();if(!source||!selected.length)throw Error('Select target objects in the modeling viewport first.');app.doc.transaction('Assign render material to selection',()=>{for(const o of selected){o.color=source.color;o.material=structuredClone(source.material);app.doc.touch(o);}});refresh();}
+  }catch(error){$('#fr-error').textContent=error.message;}});
+  root.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='F9'||(e.key==='Enter'&&(e.ctrlKey||e.metaKey))){e.preventDefault();void start();}});root.addEventListener('cancel',e=>{e.preventDefault();stop();root.close();});
+  const commands=()=>{for(const [id,label,fn] of [['render','Render final image',()=>{show();return start();}],['renderwindow','Open render window',()=>show()],['rendersettings','Final render settings',()=>show('render')],['rendermaterials','Render materials',()=>show('materials')],['renderlights','Render lighting and environment',()=>show('lighting')],['rendercancel','Cancel final render',stop],['renderpng','Export final PNG',()=>exportImage('png')],['renderexr','Export multilayer EXR',()=>exportImage('exr')],['renderhdr','Export linear HDR',()=>exportImage('hdr')]])app.commands.add(id,label,'Render','render',fn,id==='render'?'F9':'');};commands();
+  MENUS.Render=['render','renderwindow','rendercancel',null,'rendersettings','rendermaterials','renderlights',null,'renderpng','renderexr','renderhdr'];TOOLBARS.Render=['render','renderwindow','rendercancel',null,'rendersettings','rendermaterials','renderlights',null,'renderpng','renderexr','renderhdr'];
+  const menuButton=document.createElement('button');menuButton.dataset.menu='Render';menuButton.textContent='Render';document.querySelector('#menubar').insertBefore(menuButton,document.querySelector('[data-menu="Help"]'));const toolbar=document.createElement('button');toolbar.dataset.tab='Render';toolbar.textContent='Render';document.querySelector('#ribbon-tabs').append(toolbar);
+  const launch=document.createElement('button');launch.id='final-render-launch';launch.className='workspace-switch';launch.dataset.command='renderwindow';launch.textContent='Render';document.querySelector('.titlebar-right').prepend(launch);
+  app.doc.onChange(reason=>{if(!app.commands.items.has('render'))commands();if(reason!=='selection'&&(renderer.frame||renderer.device)){$('#fr-stale').textContent='Scene/settings changed · render again to update';$('#fr-stale').className='fr-warning';}if(root.open&&!root.contains(document.activeElement))refresh();});
+  document.addEventListener('keydown',e=>{if(e.key==='F9'&&!root.open){e.preventDefault();show();void start();}});
+  const updateInspector=app.updateInspector.bind(app);app.updateInspector=(...args)=>{updateInspector(...args);if(app.panel==='materials'){const content=document.querySelector('#inspector-content');if(content&&!content.querySelector('[data-command="rendermaterials"]')){const button=document.createElement('button');button.dataset.command='rendermaterials';button.className='secondary';button.style.cssText='margin:12px 18px';button.textContent='Final render materials & textures…';content.append(button);}}};
+  refresh();app.finalRender={renderer,show,start,stop,exportImage,refresh,get settings(){return settings();},setSettings:saveSettings,get preparing(){return preparing;}};return app.finalRender;
+}
+function connectFinalRendering(){if(typeof window==='undefined'||typeof document==='undefined')return;let tries=0;const connect=()=>{if(window.veldra?.ready){installFinalRendering(window.veldra);return;}if(++tries<600)setTimeout(connect,100);};connect();}
+connectFinalRendering();
+
+return {installFinalRendering};
+})();
 </script>
+
 </body></html>

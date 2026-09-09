@@ -1,0 +1,132 @@
+{
+  "checks": [
+    {
+      "name": "render window and Render menu installed",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "final render completes all samples",
+      "passed": true,
+      "detail": {
+        "state": "completed",
+        "backend": "CPU path tracer \u00b7 3 workers",
+        "errors": [],
+        "adapter": null,
+        "samples": 4,
+        "ticks": 56
+      }
+    },
+    {
+      "name": "requested engine executes",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "main thread remains responsive during tracing",
+      "passed": true,
+      "detail": 56
+    },
+    {
+      "name": "radiance, AOVs and sample counts are real",
+      "passed": true,
+      "detail": {
+        "width": 96,
+        "height": 64,
+        "finite": true,
+        "minSamples": 4,
+        "energy": 43269.83835482062,
+        "surfacePixels": 6099
+      }
+    },
+    {
+      "name": "AOV selector changes displayed pass",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "exposure preserves accumulated render",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "stored render comparison is visible",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "material editor changes optical parameters",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "studio setup creates saved area lights",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "native document includes render configuration",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "EXR download is binary image data",
+      "passed": true,
+      "detail": {
+        "bytes": 297066
+      }
+    },
+    {
+      "name": "render job pauses",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "paused job resumes",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cancellation preserves partial render",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "restart resets sample accumulation",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "render window fits mobile viewport",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "no uncaught JavaScript errors",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "no console errors",
+      "passed": true,
+      "detail": []
+    }
+  ],
+  "pageErrors": [],
+  "consoleErrors": [],
+  "webgpuRequired": false,
+  "environment": {
+    "secure": true,
+    "gpuExposed": true,
+    "viewportBackend": "WebGL2 fallback",
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36"
+  },
+  "render": {
+    "state": "completed",
+    "backend": "CPU path tracer \u00b7 3 workers",
+    "errors": [],
+    "adapter": null,
+    "samples": 4,
+    "ticks": 56
+  }
+}

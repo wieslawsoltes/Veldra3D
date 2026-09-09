@@ -1,0 +1,19 @@
+PASS render window and Render menu installed 
+PASS final render completes all samples {'state': 'completed', 'backend': 'WebGPU compute path tracer', 'errors': [], 'adapter': {'vendor': 'google', 'architecture': 'swiftshader', 'device': '', 'description': ''}, 'samples': 4, 'ticks': 177}
+PASS requested engine executes 
+PASS main thread remains responsive during tracing 177
+PASS radiance, AOVs and sample counts are real {'width': 96, 'height': 64, 'finite': True, 'minSamples': 4, 'energy': 43263.80832541222, 'surfacePixels': 6099}
+PASS AOV selector changes displayed pass 
+PASS exposure preserves accumulated render 
+PASS stored render comparison is visible 
+PASS material editor changes optical parameters 
+PASS studio setup creates saved area lights 
+PASS native document includes render configuration 
+PASS EXR download is binary image data {'bytes': 297064}
+PASS render job pauses 
+PASS paused job resumes 
+PASS cancellation preserves partial render 
+PASS restart resets sample accumulation 
+PASS render window fits mobile viewport 
+PASS no uncaught JavaScript errors 
+PASS no console errors 

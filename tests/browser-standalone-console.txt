@@ -1,4 +1,4 @@
-PASS initial scene has real geometry and valid graph {'backend': 'WebGL2 fallback', 'secure': False, 'gpuExposed': False, 'triangles': 12192, 'components': 57, 'commands': 104, 'viewport': [1600, 1050], 'userAgent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36'}
+PASS initial scene has real geometry and valid graph {'backend': 'WebGL2 fallback', 'secure': False, 'gpuExposed': False, 'triangles': 12192, 'components': 57, 'commands': 113, 'viewport': [1600, 1050], 'userAgent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36'}
 PASS live slider edits regenerate surface geometry {'before': -14, 'after': -14.1}
 PASS numeric modeling command creates editable box 
 PASS exact transform updates model 
