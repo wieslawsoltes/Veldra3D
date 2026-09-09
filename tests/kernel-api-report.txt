@@ -1,0 +1,1298 @@
+
+PACKAGE replicad
+{
+  "name": "replicad",
+  "version": "0.23.0",
+  "description": "The library to build browser based 3D models with code",
+  "keywords": [
+    "cad",
+    "opencascadejs",
+    "brep",
+    "STEP",
+    "STL"
+  ],
+  "author": "Steve Genoud <steve@sgenoud.com>",
+  "homepage": "https://replicad.xyz",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/replicad.cjs",
+  "module": "./dist/replicad.js",
+  "types": "./dist/replicad.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/replicad.js",
+      "require": "./dist/replicad.umd.cjs"
+    }
+  },
+  "directories": {
+    "src": "src",
+    "test": "__tests__"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "start": "NO_TYPES=true vite build --watch",
+    "build-doc": "typedoc --exclude \"../replicad-opencascadejs/*\" --out docs --theme default src",
+    "build-docss": "typedoc --help",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "24.0.1",
+    "@rollup/plugin-json": "6.0.0",
+    "@rollup/plugin-node-resolve": "15.0.1",
+    "@rollup/plugin-terser": "^0.4.3",
+    "@swc/core": "^1.3.27",
+    "@swc/helpers": "^0.4.14",
+    "@types/flatbush": "^3.3.0",
+    "@typescript-eslint/eslint-plugin": "^5.2.0",
+    "@typescript-eslint/parser": "^5.4.0",
+    "chalk": "^5.2.0",
+    "eslint": "^8.1.0",
+    "jest-image-snapshot": "^6.1.0",
+    "jest-matcher-utils": "^29.4.1",
+    "jest-svg-snapshot": "^0.1.0",
+    "manifold-3d": "^3.0.1",
+    "prettier": "^2.4.1",
+    "replicad-opencascadejs": "^0.23.0",
+    "rollup": "3.28.0",
+    "rollup-plugin-ts": "3.4.4",
+    "typedoc": "^0.28.2",
+    "typescript": "5.1.6",
+    "vite": "^4.0.4",
+    "vite-plugin-dts": "^3.5.2",
+    "vitest": "^0.28.3"
+  },
+  "dependencies": {
+    "@types/opentype.js": "1.3.4",
+    "flatbush": "^4.0.0",
+    "opentype.js": "1.3.4"
+  },
+  "gitHead": "19fb8212e0bb12a07a7a49f96950f8903903d469"
+}
+
+dist/replicad.d.ts 90441
+dist/replicad.js 596816
+Copyright 2023 QuaroTech Sàrl
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+PACKAGE replicad-opencascadejs
+{
+  "name": "replicad-opencascadejs",
+  "version": "0.23.0",
+  "description": "OpencascadeJS custom build for replicad",
+  "author": "Steve Genoud <steve@sgenoud.com>",
+  "homepage": "",
+  "license": "MIT",
+  "main": "src/replicad_single.js",
+  "directories": {
+    "lib": "src",
+    "test": "__tests__"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "build": "echo 'Please build manually'",
+    "buildWasm": "pnpm run generateConfig && pnpm run buildSingle && pnpm run buildWithExceptions",
+    "updateDocker": "docker pull donalffons/opencascade.js",
+    "generateConfig": "ytt -f build-source/ --output-files build-config",
+    "buildSingle": "cd build-config; docker run -it --rm -v $(pwd):/src -u $(id -u):$(id -g) donalffons/opencascade.js custom_build_single.yml && mv replicad_single* ../src; cd -",
+    "buildWithExceptions": "cd build-config; docker run -it --rm -v $(pwd):/src -u $(id -u):$(id -g) donalffons/opencascade.js custom_build_with_exceptions.yml && mv replicad_with_exceptions* ../src; cd -"
+  },
+  "gitHead": "19fb8212e0bb12a07a7a49f96950f8903903d469"
+}
+
+src/replicad_with_exceptions.js 138856
+src/replicad_single.js 135504
+src/replicad_single.wasm 10855736
+src/replicad_with_exceptions.wasm 10844674
+src/replicad_with_exceptions.d.ts 412164
+src/replicad_single.d.ts 410268
+Copyright 2023 QuaroTech Sàrl
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+PACKAGE rhino3dm
+{
+  "name": "rhino3dm",
+  "version": "8.32.2",
+  "description": "Node.js package based on OpenNURBS with a RhinoCommon style",
+  "main": "rhino3dm.js",
+  "types": "rhino3dm.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mcneel/rhino3dm.git"
+  },
+  "keywords": [
+    "rhino3d"
+  ],
+  "author": "Robert McNeel & Associates and contributors",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mcneel/rhino3dm/issues"
+  },
+  "homepage": "https://github.com/mcneel/rhino3dm#readme"
+}
+
+rhino3dm.min.js 113811
+rhino3dm.wasm 2658201
+rhino3dm.module.js 126960
+rhino3dm.d.ts 252905
+rhino3dm.module.min.js 113815
+rhino3dm.js 126991
+wasm64/rhino3dm.min.js 122254
+wasm64/rhino3dm.wasm 2789247
+wasm64/rhino3dm.module.js 135529
+wasm64/rhino3dm.module.min.js 122258
+wasm64/rhino3dm.js 135560
+export declare class BRepTools {
+  constructor();
+  static UVBounds_1(F: TopoDS_Face, UMin: Standard_Real, UMax: Standard_Real, VMin: Standard_Real, VMax: Standard_Real): void;
+  static UVBounds_2(F: TopoDS_Face, W: TopoDS_Wire, UMin: Standard_Real, UMax: Standard_Real, VMin: Standard_Real, VMax: Standard_Real): void;
+  static UVBounds_3(F: TopoDS_Face, E: TopoDS_Edge, UMin: Standard_Real, UMax: Standard_Real, VMin: Standard_Real, VMax: Standard_Real): void;
+  static AddUVBounds_1(F: TopoDS_Face, B: Bnd_Box2d): void;
+  static AddUVBounds_2(F: TopoDS_Face, W: TopoDS_Wire, B: Bnd_Box2d): void;
+  static AddUVBounds_3(F: TopoDS_Face, E: TopoDS_Edge, B: Bnd_Box2d): void;
+  static Update_1(V: TopoDS_Vertex): void;
+  static Update_2(E: TopoDS_Edge): void;
+  static Update_3(W: TopoDS_Wire): void;
+  static Update_4(F: TopoDS_Face): void;
+  static Update_5(S: TopoDS_Shell): void;
+  static Update_6(S: TopoDS_Solid): void;
+  static Update_7(C: TopoDS_CompSolid): void;
+  static Update_8(C: TopoDS_Compound): void;
+  static Update_9(S: TopoDS_Shape): void;
+  static UpdateFaceUVPoints(theF: TopoDS_Face): void;
+  static Clean(theShape: TopoDS_Shape, theForce: Standard_Boolean): void;
+  static CleanGeometry(theShape: TopoDS_Shape): void;
+  static RemoveUnusedPCurves(S: TopoDS_Shape): void;
+  static Triangulation(theShape: TopoDS_Shape, theLinDefl: Standard_Real, theToCheckFreeEdges: Standard_Boolean): Standard_Boolean;
+  static LoadTriangulation(theShape: TopoDS_Shape, theTriangulationIdx: Graphic3d_ZLayerId, theToSetAsActive: Standard_Boolean, theFileSystem: any): Standard_Boolean;
+  static UnloadTriangulation(theShape: TopoDS_Shape, theTriangulationIdx: Graphic3d_ZLayerId): Standard_Boolean;
+  static ActivateTriangulation(theShape: TopoDS_Shape, theTriangulationIdx: Graphic3d_ZLayerId, theToActivateStrictly: Standard_Boolean): Standard_Boolean;
+  static LoadAllTriangulations(theShape: TopoDS_Shape, theFileSystem: any): Standard_Boolean;
+  static UnloadAllTriangulations(theShape: TopoDS_Shape): Standard_Boolean;
+  static Compare_1(V1: TopoDS_Vertex, V2: TopoDS_Vertex): Standard_Boolean;
+  static Compare_2(E1: TopoDS_Edge, E2: TopoDS_Edge): Standard_Boolean;
+  static OuterWire(F: TopoDS_Face): TopoDS_Wire;
+  static Map3DEdges(S: TopoDS_Shape, M: TopTools_IndexedMapOfShape): void;
+  static IsReallyClosed(E: TopoDS_Edge, F: TopoDS_Face): Standard_Boolean;
+  static DetectClosedness(theFace: TopoDS_Face, theUclosed: Standard_Boolean, theVclosed: Standard_Boolean): void;
+  static Dump(Sh: TopoDS_Shape, S: Standard_OStream): void;
+  static Write_1(theShape: TopoDS_Shape, theStream: Standard_OStream, theProgress: Message_ProgressRange): void;
+  static Write_2(theShape: TopoDS_Shape, theStream: Standard_OStream, theWithTriangles: Standard_Boolean, theWithNormals: Standard_Boolean, theVersion: TopTools_FormatVersion, theProgress: Message_ProgressRange): void;
+  static Read_1(Sh: TopoDS_Shape, S: Standard_IStream, B: BRep_Builder, theProgress: Message_ProgressRange): void;
+  static Write_3(theShape: TopoDS_Shape, theFile: Standard_CString, theProgress: Message_ProgressRange): Standard_Boolean;
+  static Write_4(theShape: TopoDS_Shape, theFile: Standard_CString, theWithTriangles: Standard_Boolean, theWithNormals: Standard_Boolean, theVersion: TopTools_FormatVersion, theProgress: Message_ProgressRange): Standard_Boolean;
+  static Read_2(Sh: TopoDS_Shape, File: Standard_CString, B: BRep_Builder, theProgress: Message_ProgressRange): Standard_Boolean;
+  static EvalAndUpdateTol(theE: TopoDS_Edge, theC3d: Handle_Geom_Curve, theC2d: Handle_Geom2d_Curve, theS: Handle_Geom_Surface, theF: Standard_Real, theL: Standard_Real): Standard_Real;
+  static OriEdgeInFace(theEdge: TopoDS_Edge, theFace: TopoDS_Face): TopAbs_Orientation;
+  static RemoveInternals(theS: TopoDS_Shape, theForce: Standard_Boolean): void;
+  static CheckLocations(theS: TopoDS_Shape, theProblemShapes: TopTools_ListOfShape): void;
+  delete(): void;
+}
+export declare class BRepBuilderAPI_MakeFace extends BRepBuilderAPI_MakeShape {
+  Init_1(F: TopoDS_Face): void;
+  Init_2(S: Handle_Geom_Surface, Bound: Standard_Boolean, TolDegen: Standard_Real): void;
+  Init_3(S: Handle_Geom_Surface, UMin: Standard_Real, UMax: Standard_Real, VMin: Standard_Real, VMax: Standard_Real, TolDegen: Standard_Real): void;
+  Add(W: TopoDS_Wire): void;
+  IsDone(): Standard_Boolean;
+  Error(): BRepBuilderAPI_FaceError;
+  Face(): TopoDS_Face;
+  delete(): void;
+}
+export declare class BRepBuilderAPI_MakeFace_1 extends BRepBuilderAPI_MakeFace {
+    constructor();
+  }
+
+  export declare class BRepBuilderAPI_MakeFace_2 extends BRepBuilderAPI_MakeFace {
+    constructor(F: TopoDS_Face);
+  }
+
+  export declare class BRepBuilderAPI_MakeFace_3 extends BRepBuilderAPI_MakeFace {
+    constructor(P: gp_Pln);
+  }
+
+  export declare class BRepBuilderAPI_MakeFace_4 extends BRepBuilderAPI_MakeFace {
+    constructor(C: gp_Cylinder);
+  }
+
+  export declare class BRepBuilderAPI_MakeFace_5 extends BRepBuilderAPI_MakeFace {
+    constructor(C: gp_Cone);
+  }
+
+  export declare class BRepBuilderAPI_MakeFace_6 extends BRepBuilderAPI_MakeFace {
+    constructor(S: gp_Sphere);
+  }
+
+  export declare class BRepBuilderAPI_MakeFace_7 extends BRepBuilderAPI_MakeFace {
+    constructor(C: gp_Torus);
+  }
+
+  export declare class BRepBuilderAPI_MakeFace_8 extends BRepBuilderAPI_MakeFace {
+    constructor(S: Handle_Geom_Surface, TolDegen: Standard_Real);
+  }
+
+  export declare class BRepBuilderAPI_MakeFace_9 extends BRepBuilderAPI_MakeFace {
+    constructor(P: gp_Pln, UMin: Standard_Real, UMax: Standard_Real, VMin: Standard_Real, VMax: Standard_Real);
+  }
+
+  export declare class BRepBuilderAPI_MakeFace_10 extends BRepBuilderAPI_MakeFace {
+    constructor(C: gp_Cylinder, UMin: Standard_Real, UMax: Standard_Real, VMin: Standard_Real, VMax: Standard_Real);
+  }
+
+  export declare class BRepBuilderAPI_MakeFace_11 extends BRepBuilderAPI_MakeFace {
+    constructor(C: gp_Cone, UMin: Standard_Real, UMax: Standard_Real, VMin: Standard_Real, VMax: Standard_Real);
+  }
+
+  export declare class BRepBuilderAPI_MakeFace_12 extends BRepBuilderAPI_MakeFace {
+    constructor(S: gp_Sphere, UMin: Standard_Real, UMax: Standard_Real, VMin: Standard_Real, VMax: Standard_Real);
+  }
+
+  export declare class BRepBuilderAPI_MakeFace_13 extends BRepBuilderAPI_MakeFace {
+    constructor(C: gp_Torus, UMin: Standard_Real, UMax: Standard_Real, VMin: Standard_Real, VMax: Standard_Real);
+  }
+
+  export declare class BRepBuilderAPI_MakeFace_14 extends BRepBuilderAPI_MakeFace {
+    constructor(S: Handle_Geom_Surface, UMin: Standard_Real, UMax: Standard_Real, VMin: Standard_Real, VMax: Standard_Real, TolDegen: Standard_Real);
+  }
+
+  export declare class BRepBuilderAPI_MakeFace_15 extends BRepBuilderAPI_MakeFace {
+    constructor(W: TopoDS_Wire, OnlyPlane: Standard_Boolean);
+  }
+
+  export declare class BRepBuilderAPI_MakeFace_16 extends BRepBuilderAPI_MakeFace {
+    constructor(P: gp_Pln, W: TopoDS_Wire, Inside: Standard_Boolean);
+  }
+
+  export declare class BRepBuilderAPI_MakeFace_17 extends BRepBuilderAPI_MakeFace {
+    constructor(C: gp_Cylinder, W: TopoDS_Wire, Inside: Standard_Boolean);
+  }
+
+  export declare class BRepBuilderAPI_MakeFace_18 extends BRepBuilderAPI_MakeFace {
+    constructor(C: gp_Cone, W: TopoDS_Wire, Inside: Standard_Boolean);
+  }
+
+  export declare class BRepBuilderAPI_MakeFace_19 extends BRepBuilderAPI_MakeFace {
+    constructor(S: gp_Sphere, W: TopoDS_Wire, Inside: Standard_Boolean);
+  }
+
+  export declare class BRepBuilderAPI_MakeFace_20 extends BRepBuilderAPI_MakeFace {
+    constructor(C: gp_Torus, W: TopoDS_Wire, Inside: Standard_Boolean);
+  }
+
+  export declare class BRepBuilderAPI_MakeFace_21 extends BRepBuilderAPI_MakeFace {
+    constructor(S: Handle_Geom_Surface, W: TopoDS_Wire, Inside: Standard_Boolean);
+  }
+
+  export declare class BRepBuilderAPI_MakeFace_22 extends BRepBuilderAPI_MakeFace {
+    constructor(F: TopoDS_Face, W: TopoDS_Wire);
+  }
+
+export declare class BRepBuilderAPI_MakeShape extends BRepBuilderAPI_Command {
+  Build(theRange: Message_ProgressRange): void;
+  Shape(): TopoDS_Shape;
+  Generated(S: TopoDS_Shape): TopTools_ListOfShape;
+  Modified(S: TopoDS_Shape): TopTools_ListOfShape;
+  IsDeleted(S: TopoDS_Shape): Standard_Boolean;
+  delete(): void;
+}
+export declare class BRepBuilderAPI_MakeEdge extends BRepBuilderAPI_MakeShape {
+  Init_1(C: Handle_Geom_Curve): void;
+  Init_2(C: Handle_Geom_Curve, p1: Standard_Real, p2: Standard_Real): void;
+  Init_3(C: Handle_Geom_Curve, P1: gp_Pnt, P2: gp_Pnt): void;
+  Init_4(C: Handle_Geom_Curve, V1: TopoDS_Vertex, V2: TopoDS_Vertex): void;
+  Init_5(C: Handle_Geom_Curve, P1: gp_Pnt, P2: gp_Pnt, p1: Standard_Real, p2: Standard_Real): void;
+  Init_6(C: Handle_Geom_Curve, V1: TopoDS_Vertex, V2: TopoDS_Vertex, p1: Standard_Real, p2: Standard_Real): void;
+  Init_7(C: Handle_Geom2d_Curve, S: Handle_Geom_Surface): void;
+  Init_8(C: Handle_Geom2d_Curve, S: Handle_Geom_Surface, p1: Standard_Real, p2: Standard_Real): void;
+  Init_9(C: Handle_Geom2d_Curve, S: Handle_Geom_Surface, P1: gp_Pnt, P2: gp_Pnt): void;
+  Init_10(C: Handle_Geom2d_Curve, S: Handle_Geom_Surface, V1: TopoDS_Vertex, V2: TopoDS_Vertex): void;
+  Init_11(C: Handle_Geom2d_Curve, S: Handle_Geom_Surface, P1: gp_Pnt, P2: gp_Pnt, p1: Standard_Real, p2: Standard_Real): void;
+  Init_12(C: Handle_Geom2d_Curve, S: Handle_Geom_Surface, V1: TopoDS_Vertex, V2: TopoDS_Vertex, p1: Standard_Real, p2: Standard_Real): void;
+  IsDone(): Standard_Boolean;
+  Error(): BRepBuilderAPI_EdgeError;
+  Edge(): TopoDS_Edge;
+  Vertex1(): TopoDS_Vertex;
+  Vertex2(): TopoDS_Vertex;
+  delete(): void;
+}
+export declare class BRepBuilderAPI_MakeEdge_1 extends BRepBuilderAPI_MakeEdge {
+    constructor();
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_2 extends BRepBuilderAPI_MakeEdge {
+    constructor(V1: TopoDS_Vertex, V2: TopoDS_Vertex);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_3 extends BRepBuilderAPI_MakeEdge {
+    constructor(P1: gp_Pnt, P2: gp_Pnt);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_4 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: gp_Lin);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_5 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: gp_Lin, p1: Standard_Real, p2: Standard_Real);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_6 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: gp_Lin, P1: gp_Pnt, P2: gp_Pnt);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_7 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: gp_Lin, V1: TopoDS_Vertex, V2: TopoDS_Vertex);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_8 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: gp_Circ);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_9 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: gp_Circ, p1: Standard_Real, p2: Standard_Real);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_10 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: gp_Circ, P1: gp_Pnt, P2: gp_Pnt);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_11 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: gp_Circ, V1: TopoDS_Vertex, V2: TopoDS_Vertex);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_12 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: gp_Elips);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_13 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: gp_Elips, p1: Standard_Real, p2: Standard_Real);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_14 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: gp_Elips, P1: gp_Pnt, P2: gp_Pnt);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_15 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: gp_Elips, V1: TopoDS_Vertex, V2: TopoDS_Vertex);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_16 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: gp_Hypr);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_17 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: gp_Hypr, p1: Standard_Real, p2: Standard_Real);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_18 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: gp_Hypr, P1: gp_Pnt, P2: gp_Pnt);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_19 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: gp_Hypr, V1: TopoDS_Vertex, V2: TopoDS_Vertex);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_20 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: gp_Parab);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_21 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: gp_Parab, p1: Standard_Real, p2: Standard_Real);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_22 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: gp_Parab, P1: gp_Pnt, P2: gp_Pnt);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_23 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: gp_Parab, V1: TopoDS_Vertex, V2: TopoDS_Vertex);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_24 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: Handle_Geom_Curve);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_25 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: Handle_Geom_Curve, p1: Standard_Real, p2: Standard_Real);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_26 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: Handle_Geom_Curve, P1: gp_Pnt, P2: gp_Pnt);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_27 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: Handle_Geom_Curve, V1: TopoDS_Vertex, V2: TopoDS_Vertex);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_28 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: Handle_Geom_Curve, P1: gp_Pnt, P2: gp_Pnt, p1: Standard_Real, p2: Standard_Real);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_29 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: Handle_Geom_Curve, V1: TopoDS_Vertex, V2: TopoDS_Vertex, p1: Standard_Real, p2: Standard_Real);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_30 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: Handle_Geom2d_Curve, S: Handle_Geom_Surface);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_31 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: Handle_Geom2d_Curve, S: Handle_Geom_Surface, p1: Standard_Real, p2: Standard_Real);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_32 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: Handle_Geom2d_Curve, S: Handle_Geom_Surface, P1: gp_Pnt, P2: gp_Pnt);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_33 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: Handle_Geom2d_Curve, S: Handle_Geom_Surface, V1: TopoDS_Vertex, V2: TopoDS_Vertex);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_34 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: Handle_Geom2d_Curve, S: Handle_Geom_Surface, P1: gp_Pnt, P2: gp_Pnt, p1: Standard_Real, p2: Standard_Real);
+  }
+
+  export declare class BRepBuilderAPI_MakeEdge_35 extends BRepBuilderAPI_MakeEdge {
+    constructor(L: Handle_Geom2d_Curve, S: Handle_Geom_Surface, V1: TopoDS_Vertex, V2: TopoDS_Vertex, p1: Standard_Real, p2: Standard_Real);
+  }
+
+export declare class BRepBuilderAPI_MakeFace extends BRepBuilderAPI_MakeShape {
+  Init_1(F: TopoDS_Face): void;
+  Init_2(S: Handle_Geom_Surface, Bound: Standard_Boolean, TolDegen: Standard_Real): void;
+  Init_3(S: Handle_Geom_Surface, UMin: Standard_Real, UMax: Standard_Real, VMin: Standard_Real, VMax: Standard_Real, TolDegen: Standard_Real): void;
+  Add(W: TopoDS_Wire): void;
+  IsDone(): Standard_Boolean;
+  Error(): BRepBuilderAPI_FaceError;
+  Face(): TopoDS_Face;
+  delete(): void;
+}
+export declare class BRepBuilderAPI_MakeWire extends BRepBuilderAPI_MakeShape {
+  Add_1(E: TopoDS_Edge): void;
+  Add_2(W: TopoDS_Wire): void;
+  Add_3(L: TopTools_ListOfShape): void;
+  IsDone(): Standard_Boolean;
+  Error(): BRepBuilderAPI_WireError;
+  Wire(): TopoDS_Wire;
+  Edge(): TopoDS_Edge;
+  Vertex(): TopoDS_Vertex;
+  delete(): void;
+}
+export declare class BRepBuilderAPI_MakeWire_1 extends BRepBuilderAPI_MakeWire {
+    constructor();
+  }
+
+  export declare class BRepBuilderAPI_MakeWire_2 extends BRepBuilderAPI_MakeWire {
+    constructor(E: TopoDS_Edge);
+  }
+
+  export declare class BRepBuilderAPI_MakeWire_3 extends BRepBuilderAPI_MakeWire {
+    constructor(E1: TopoDS_Edge, E2: TopoDS_Edge);
+  }
+
+  export declare class BRepBuilderAPI_MakeWire_4 extends BRepBuilderAPI_MakeWire {
+    constructor(E1: TopoDS_Edge, E2: TopoDS_Edge, E3: TopoDS_Edge);
+  }
+
+  export declare class BRepBuilderAPI_MakeWire_5 extends BRepBuilderAPI_MakeWire {
+    constructor(E1: TopoDS_Edge, E2: TopoDS_Edge, E3: TopoDS_Edge, E4: TopoDS_Edge);
+  }
+
+  export declare class BRepBuilderAPI_MakeWire_6 extends BRepBuilderAPI_MakeWire {
+    constructor(W: TopoDS_Wire);
+  }
+
+  export declare class BRepBuilderAPI_MakeWire_7 extends BRepBuilderAPI_MakeWire {
+    constructor(W: TopoDS_Wire, E: TopoDS_Edge);
+  }
+
+export declare class BRepBuilderAPI_ModifyShape extends BRepBuilderAPI_MakeShape {
+  Modified(S: TopoDS_Shape): TopTools_ListOfShape;
+  ModifiedShape(S: TopoDS_Shape): TopoDS_Shape;
+  delete(): void;
+}
+export declare class Geom_BSplineSurface extends Geom_BoundedSurface {
+  ExchangeUV(): void;
+  SetUPeriodic(): void;
+  SetVPeriodic(): void;
+  PeriodicNormalization(U: Standard_Real, V: Standard_Real): void;
+  SetUOrigin(Index: Graphic3d_ZLayerId): void;
+  SetVOrigin(Index: Graphic3d_ZLayerId): void;
+  SetUNotPeriodic(): void;
+  SetVNotPeriodic(): void;
+  UReverse(): void;
+  VReverse(): void;
+  UReversedParameter(U: Standard_Real): Standard_Real;
+  VReversedParameter(V: Standard_Real): Standard_Real;
+  IncreaseDegree(UDegree: Graphic3d_ZLayerId, VDegree: Graphic3d_ZLayerId): void;
+  InsertUKnots(Knots: IntTools_CArray1OfReal, Mults: TColStd_Array1OfInteger, ParametricTolerance: Standard_Real, Add: Standard_Boolean): void;
+  InsertVKnots(Knots: IntTools_CArray1OfReal, Mults: TColStd_Array1OfInteger, ParametricTolerance: Standard_Real, Add: Standard_Boolean): void;
+  RemoveUKnot(Index: Graphic3d_ZLayerId, M: Graphic3d_ZLayerId, Tolerance: Standard_Real): Standard_Boolean;
+  RemoveVKnot(Index: Graphic3d_ZLayerId, M: Graphic3d_ZLayerId, Tolerance: Standard_Real): Standard_Boolean;
+  IncreaseUMultiplicity_1(UIndex: Graphic3d_ZLayerId, M: Graphic3d_ZLayerId): void;
+  IncreaseUMultiplicity_2(FromI1: Graphic3d_ZLayerId, ToI2: Graphic3d_ZLayerId, M: Graphic3d_ZLayerId): void;
+  IncrementUMultiplicity(FromI1: Graphic3d_ZLayerId, ToI2: Graphic3d_ZLayerId, Step: Graphic3d_ZLayerId): void;
+  IncreaseVMultiplicity_1(VIndex: Graphic3d_ZLayerId, M: Graphic3d_ZLayerId): void;
+  IncreaseVMultiplicity_2(FromI1: Graphic3d_ZLayerId, ToI2: Graphic3d_ZLayerId, M: Graphic3d_ZLayerId): void;
+  IncrementVMultiplicity(FromI1: Graphic3d_ZLayerId, ToI2: Graphic3d_ZLayerId, Step: Graphic3d_ZLayerId): void;
+  InsertUKnot(U: Standard_Real, M: Graphic3d_ZLayerId, ParametricTolerance: Standard_Real, Add: Standard_Boolean): void;
+  InsertVKnot(V: Standard_Real, M: Graphic3d_ZLayerId, ParametricTolerance: Standard_Real, Add: Standard_Boolean): void;
+  Segment(U1: Standard_Real, U2: Standard_Real, V1: Standard_Real, V2: Standard_Real, theUTolerance: Standard_Real, theVTolerance: Standard_Real): void;
+  CheckAndSegment(U1: Standard_Real, U2: Standard_Real, V1: Standard_Real, V2: Standard_Real, theUTolerance: Standard_Real, theVTolerance: Standard_Real): void;
+  SetUKnot_1(UIndex: Graphic3d_ZLayerId, K: Standard_Real): void;
+  SetUKnots(UK: IntTools_CArray1OfReal): void;
+  SetUKnot_2(UIndex: Graphic3d_ZLayerId, K: Standard_Real, M: Graphic3d_ZLayerId): void;
+  SetVKnot_1(VIndex: Graphic3d_ZLayerId, K: Standard_Real): void;
+  SetVKnots(VK: IntTools_CArray1OfReal): void;
+  SetVKnot_2(VIndex: Graphic3d_ZLayerId, K: Standard_Real, M: Graphic3d_ZLayerId): void;
+  LocateU(U: Standard_Real, ParametricTolerance: Standard_Real, I1: Graphic3d_ZLayerId, I2: Graphic3d_ZLayerId, WithKnotRepetition: Standard_Boolean): void;
+  LocateV(V: Standard_Real, ParametricTolerance: Standard_Real, I1: Graphic3d_ZLayerId, I2: Graphic3d_ZLayerId, WithKnotRepetition: Standard_Boolean): void;
+  SetPole_1(UIndex: Graphic3d_ZLayerId, VIndex: Graphic3d_ZLayerId, P: gp_Pnt): void;
+  SetPole_2(UIndex: Graphic3d_ZLayerId, VIndex: Graphic3d_ZLayerId, P: gp_Pnt, Weight: Standard_Real): void;
+  SetPoleCol_1(VIndex: Graphic3d_ZLayerId, CPoles: TColgp_Array1OfPnt): void;
+  SetPoleCol_2(VIndex: Graphic3d_ZLayerId, CPoles: TColgp_Array1OfPnt, CPoleWeights: IntTools_CArray1OfReal): void;
+  SetPoleRow_1(UIndex: Graphic3d_ZLayerId, CPoles: TColgp_Array1OfPnt, CPoleWeights: IntTools_CArray1OfReal): void;
+  SetPoleRow_2(UIndex: Graphic3d_ZLayerId, CPoles: TColgp_Array1OfPnt): void;
+  SetWeight(UIndex: Graphic3d_ZLayerId, VIndex: Graphic3d_ZLayerId, Weight: Standard_Real): void;
+  SetWeightCol(VIndex: Graphic3d_ZLayerId, CPoleWeights: IntTools_CArray1OfReal): void;
+  SetWeightRow(UIndex: Graphic3d_ZLayerId, CPoleWeights: IntTools_CArray1OfReal): void;
+  MovePoint(U: Standard_Real, V: Standard_Real, P: gp_Pnt, UIndex1: Graphic3d_ZLayerId, UIndex2: Graphic3d_ZLayerId, VIndex1: Graphic3d_ZLayerId, VIndex2: Graphic3d_ZLayerId, UFirstIndex: Graphic3d_ZLayerId, ULastIndex: Graphic3d_ZLayerId, VFirstIndex: Graphic3d_ZLayerId, VLastIndex: Graphic3d_ZLayerId): void;
+  IsUClosed(): Standard_Boolean;
+  IsVClosed(): Standard_Boolean;
+  IsCNu(N: Graphic3d_ZLayerId): Standard_Boolean;
+  IsCNv(N: Graphic3d_ZLayerId): Standard_Boolean;
+  IsUPeriodic(): Standard_Boolean;
+  IsURational(): Standard_Boolean;
+  IsVPeriodic(): Standard_Boolean;
+  IsVRational(): Standard_Boolean;
+  Bounds(U1: Standard_Real, U2: Standard_Real, V1: Standard_Real, V2: Standard_Real): void;
+  Continuity(): GeomAbs_Shape;
+  FirstUKnotIndex(): Graphic3d_ZLayerId;
+  FirstVKnotIndex(): Graphic3d_ZLayerId;
+  LastUKnotIndex(): Graphic3d_ZLayerId;
+  LastVKnotIndex(): Graphic3d_ZLayerId;
+  NbUKnots(): Graphic3d_ZLayerId;
+  NbUPoles(): Graphic3d_ZLayerId;
+  NbVKnots(): Graphic3d_ZLayerId;
+  NbVPoles(): Graphic3d_ZLayerId;
+  Pole(UIndex: Graphic3d_ZLayerId, VIndex: Graphic3d_ZLayerId): gp_Pnt;
+  Poles_1(P: TColgp_Array2OfPnt): void;
+  Poles_2(): TColgp_Array2OfPnt;
+  UDegree(): Graphic3d_ZLayerId;
+  UKnot(UIndex: Graphic3d_ZLayerId): Standard_Real;
+  UKnotDistribution(): GeomAbs_BSplKnotDistribution;
+  UKnots_1(Ku: IntTools_CArray1OfReal): void;
+  UKnots_2(): IntTools_CArray1OfReal;
+  UKnotSequence_1(Ku: IntTools_CArray1OfReal): void;
+  UKnotSequence_2(): IntTools_CArray1OfReal;
+  UMultiplicity(UIndex: Graphic3d_ZLayerId): Graphic3d_ZLayerId;
+  UMultiplicities_1(Mu: TColStd_Array1OfInteger): void;
+  UMultiplicities_2(): TColStd_Array1OfInteger;
+  VDegree(): Graphic3d_ZLayerId;
+  VKnot(VIndex: Graphic3d_ZLayerId): Standard_Real;
+  VKnotDistribution(): GeomAbs_BSplKnotDistribution;
+  VKnots_1(Kv: IntTools_CArray1OfReal): void;
+  VKnots_2(): IntTools_CArray1OfReal;
+  VKnotSequence_1(Kv: IntTools_CArray1OfReal): void;
+  VKnotSequence_2(): IntTools_CArray1OfReal;
+  VMultiplicity(VIndex: Graphic3d_ZLayerId): Graphic3d_ZLayerId;
+  VMultiplicities_1(Mv: TColStd_Array1OfInteger): void;
+  VMultiplicities_2(): TColStd_Array1OfInteger;
+  Weight(UIndex: Graphic3d_ZLayerId, VIndex: Graphic3d_ZLayerId): Standard_Real;
+  Weights_1(W: TColStd_Array2OfReal): void;
+  Weights_2(): TColStd_Array2OfReal;
+  D0(U: Standard_Real, V: Standard_Real, P: gp_Pnt): void;
+  D1(U: Standard_Real, V: Standard_Real, P: gp_Pnt, D1U: gp_Vec, D1V: gp_Vec): void;
+  D2(U: Standard_Real, V: Standard_Real, P: gp_Pnt, D1U: gp_Vec, D1V: gp_Vec, D2U: gp_Vec, D2V: gp_Vec, D2UV: gp_Vec): void;
+  D3(U: Standard_Real, V: Standard_Real, P: gp_Pnt, D1U: gp_Vec, D1V: gp_Vec, D2U: gp_Vec, D2V: gp_Vec, D2UV: gp_Vec, D3U: gp_Vec, D3V: gp_Vec, D3UUV: gp_Vec, D3UVV: gp_Vec): void;
+  DN(U: Standard_Real, V: Standard_Real, Nu: Graphic3d_ZLayerId, Nv: Graphic3d_ZLayerId): gp_Vec;
+  LocalD0(U: Standard_Real, V: Standard_Real, FromUK1: Graphic3d_ZLayerId, ToUK2: Graphic3d_ZLayerId, FromVK1: Graphic3d_ZLayerId, ToVK2: Graphic3d_ZLayerId, P: gp_Pnt): void;
+  LocalD1(U: Standard_Real, V: Standard_Real, FromUK1: Graphic3d_ZLayerId, ToUK2: Graphic3d_ZLayerId, FromVK1: Graphic3d_ZLayerId, ToVK2: Graphic3d_ZLayerId, P: gp_Pnt, D1U: gp_Vec, D1V: gp_Vec): void;
+  LocalD2(U: Standard_Real, V: Standard_Real, FromUK1: Graphic3d_ZLayerId, ToUK2: Graphic3d_ZLayerId, FromVK1: Graphic3d_ZLayerId, ToVK2: Graphic3d_ZLayerId, P: gp_Pnt, D1U: gp_Vec, D1V: gp_Vec, D2U: gp_Vec, D2V: gp_Vec, D2UV: gp_Vec): void;
+  LocalD3(U: Standard_Real, V: Standard_Real, FromUK1: Graphic3d_ZLayerId, ToUK2: Graphic3d_ZLayerId, FromVK1: Graphic3d_ZLayerId, ToVK2: Graphic3d_ZLayerId, P: gp_Pnt, D1U: gp_Vec, D1V: gp_Vec, D2U: gp_Vec, D2V: gp_Vec, D2UV: gp_Vec, D3U: gp_Vec, D3V: gp_Vec, D3UUV: gp_Vec, D3UVV: gp_Vec): void;
+  LocalDN(U: Standard_Real, V: Standard_Real, FromUK1: Graphic3d_ZLayerId, ToUK2: Graphic3d_ZLayerId, FromVK1: Graphic3d_ZLayerId, ToVK2: Graphic3d_ZLayerId, Nu: Graphic3d_ZLayerId, Nv: Graphic3d_ZLayerId): gp_Vec;
+  LocalValue(U: Standard_Real, V: Standard_Real, FromUK1: Graphic3d_ZLayerId, ToUK2: Graphic3d_ZLayerId, FromVK1: Graphic3d_ZLayerId, ToVK2: Graphic3d_ZLayerId): gp_Pnt;
+  UIso_1(U: Standard_Real): Handle_Geom_Curve;
+  VIso_1(V: Standard_Real): Handle_Geom_Curve;
+  UIso_2(U: Standard_Real, CheckRational: Standard_Boolean): Handle_Geom_Curve;
+  VIso_2(V: Standard_Real, CheckRational: Standard_Boolean): Handle_Geom_Curve;
+  Transform(T: gp_Trsf): void;
+  static MaxDegree(): Graphic3d_ZLayerId;
+  Resolution(Tolerance3D: Standard_Real, UTolerance: Standard_Real, VTolerance: Standard_Real): void;
+  Copy(): Handle_Geom_Geometry;
+  DumpJson(theOStream: Standard_OStream, theDepth: Graphic3d_ZLayerId): void;
+  static get_type_name(): Standard_Character;
+  static get_type_descriptor(): Handle_Standard_Type;
+  DynamicType(): Handle_Standard_Type;
+  delete(): void;
+}
+export declare class Geom_BSplineSurface_1 extends Geom_BSplineSurface {
+    constructor(Poles: TColgp_Array2OfPnt, UKnots: IntTools_CArray1OfReal, VKnots: IntTools_CArray1OfReal, UMults: TColStd_Array1OfInteger, VMults: TColStd_Array1OfInteger, UDegree: Graphic3d_ZLayerId, VDegree: Graphic3d_ZLayerId, UPeriodic: Standard_Boolean, VPeriodic: Standard_Boolean);
+  }
+
+  export declare class Geom_BSplineSurface_2 extends Geom_BSplineSurface {
+    constructor(Poles: TColgp_Array2OfPnt, Weights: TColStd_Array2OfReal, UKnots: IntTools_CArray1OfReal, VKnots: IntTools_CArray1OfReal, UMults: TColStd_Array1OfInteger, VMults: TColStd_Array1OfInteger, UDegree: Graphic3d_ZLayerId, VDegree: Graphic3d_ZLayerId, UPeriodic: Standard_Boolean, VPeriodic: Standard_Boolean);
+  }
+
+export declare class Handle_Geom_BSplineSurface {
+  Nullify(): void;
+  IsNull(): boolean;
+  reset(thePtr: Geom_BSplineSurface): void;
+  get(): Geom_BSplineSurface;
+  delete(): void;
+}
+export declare class Geom_BSplineCurve extends Geom_BoundedCurve {
+  IncreaseDegree(Degree: Graphic3d_ZLayerId): void;
+  IncreaseMultiplicity_1(Index: Graphic3d_ZLayerId, M: Graphic3d_ZLayerId): void;
+  IncreaseMultiplicity_2(I1: Graphic3d_ZLayerId, I2: Graphic3d_ZLayerId, M: Graphic3d_ZLayerId): void;
+  IncrementMultiplicity(I1: Graphic3d_ZLayerId, I2: Graphic3d_ZLayerId, M: Graphic3d_ZLayerId): void;
+  InsertKnot(U: Standard_Real, M: Graphic3d_ZLayerId, ParametricTolerance: Standard_Real, Add: Standard_Boolean): void;
+  InsertKnots(Knots: IntTools_CArray1OfReal, Mults: TColStd_Array1OfInteger, ParametricTolerance: Standard_Real, Add: Standard_Boolean): void;
+  RemoveKnot(Index: Graphic3d_ZLayerId, M: Graphic3d_ZLayerId, Tolerance: Standard_Real): Standard_Boolean;
+  Reverse(): void;
+  ReversedParameter(U: Standard_Real): Standard_Real;
+  Segment(U1: Standard_Real, U2: Standard_Real, theTolerance: Standard_Real): void;
+  SetKnot_1(Index: Graphic3d_ZLayerId, K: Standard_Real): void;
+  SetKnots(K: IntTools_CArray1OfReal): void;
+  SetKnot_2(Index: Graphic3d_ZLayerId, K: Standard_Real, M: Graphic3d_ZLayerId): void;
+  PeriodicNormalization(U: Standard_Real): void;
+  SetPeriodic(): void;
+  SetOrigin_1(Index: Graphic3d_ZLayerId): void;
+  SetOrigin_2(U: Standard_Real, Tol: Standard_Real): void;
+  SetNotPeriodic(): void;
+  SetPole_1(Index: Graphic3d_ZLayerId, P: gp_Pnt): void;
+  SetPole_2(Index: Graphic3d_ZLayerId, P: gp_Pnt, Weight: Standard_Real): void;
+  SetWeight(Index: Graphic3d_ZLayerId, Weight: Standard_Real): void;
+  MovePoint(U: Standard_Real, P: gp_Pnt, Index1: Graphic3d_ZLayerId, Index2: Graphic3d_ZLayerId, FirstModifiedPole: Graphic3d_ZLayerId, LastModifiedPole: Graphic3d_ZLayerId): void;
+  MovePointAndTangent(U: Standard_Real, P: gp_Pnt, Tangent: gp_Vec, Tolerance: Standard_Real, StartingCondition: Graphic3d_ZLayerId, EndingCondition: Graphic3d_ZLayerId, ErrorStatus: Graphic3d_ZLayerId): void;
+  IsCN(N: Graphic3d_ZLayerId): Standard_Boolean;
+  IsG1(theTf: Standard_Real, theTl: Standard_Real, theAngTol: Standard_Real): Standard_Boolean;
+  IsClosed(): Standard_Boolean;
+  IsPeriodic(): Standard_Boolean;
+  IsRational(): Standard_Boolean;
+  Continuity(): GeomAbs_Shape;
+  Degree(): Graphic3d_ZLayerId;
+  D0(U: Standard_Real, P: gp_Pnt): void;
+  D1(U: Standard_Real, P: gp_Pnt, V1: gp_Vec): void;
+  D2(U: Standard_Real, P: gp_Pnt, V1: gp_Vec, V2: gp_Vec): void;
+  D3(U: Standard_Real, P: gp_Pnt, V1: gp_Vec, V2: gp_Vec, V3: gp_Vec): void;
+  DN(U: Standard_Real, N: Graphic3d_ZLayerId): gp_Vec;
+  LocalValue(U: Standard_Real, FromK1: Graphic3d_ZLayerId, ToK2: Graphic3d_ZLayerId): gp_Pnt;
+  LocalD0(U: Standard_Real, FromK1: Graphic3d_ZLayerId, ToK2: Graphic3d_ZLayerId, P: gp_Pnt): void;
+  LocalD1(U: Standard_Real, FromK1: Graphic3d_ZLayerId, ToK2: Graphic3d_ZLayerId, P: gp_Pnt, V1: gp_Vec): void;
+  LocalD2(U: Standard_Real, FromK1: Graphic3d_ZLayerId, ToK2: Graphic3d_ZLayerId, P: gp_Pnt, V1: gp_Vec, V2: gp_Vec): void;
+  LocalD3(U: Standard_Real, FromK1: Graphic3d_ZLayerId, ToK2: Graphic3d_ZLayerId, P: gp_Pnt, V1: gp_Vec, V2: gp_Vec, V3: gp_Vec): void;
+  LocalDN(U: Standard_Real, FromK1: Graphic3d_ZLayerId, ToK2: Graphic3d_ZLayerId, N: Graphic3d_ZLayerId): gp_Vec;
+  EndPoint(): gp_Pnt;
+  FirstUKnotIndex(): Graphic3d_ZLayerId;
+  FirstParameter(): Standard_Real;
+  Knot(Index: Graphic3d_ZLayerId): Standard_Real;
+  Knots_1(K: IntTools_CArray1OfReal): void;
+  Knots_2(): IntTools_CArray1OfReal;
+  KnotSequence_1(K: IntTools_CArray1OfReal): void;
+  KnotSequence_2(): IntTools_CArray1OfReal;
+  KnotDistribution(): GeomAbs_BSplKnotDistribution;
+  LastUKnotIndex(): Graphic3d_ZLayerId;
+  LastParameter(): Standard_Real;
+  LocateU(U: Standard_Real, ParametricTolerance: Standard_Real, I1: Graphic3d_ZLayerId, I2: Graphic3d_ZLayerId, WithKnotRepetition: Standard_Boolean): void;
+  Multiplicity(Index: Graphic3d_ZLayerId): Graphic3d_ZLayerId;
+  Multiplicities_1(M: TColStd_Array1OfInteger): void;
+  Multiplicities_2(): TColStd_Array1OfInteger;
+  NbKnots(): Graphic3d_ZLayerId;
+  NbPoles(): Graphic3d_ZLayerId;
+  Pole(Index: Graphic3d_ZLayerId): gp_Pnt;
+  Poles_1(P: TColgp_Array1OfPnt): void;
+  Poles_2(): TColgp_Array1OfPnt;
+  StartPoint(): gp_Pnt;
+  Weight(Index: Graphic3d_ZLayerId): Standard_Real;
+  Weights_1(W: IntTools_CArray1OfReal): void;
+  Weights_2(): IntTools_CArray1OfReal;
+  Transform(T: gp_Trsf): void;
+  static MaxDegree(): Graphic3d_ZLayerId;
+  Resolution(Tolerance3D: Standard_Real, UTolerance: Standard_Real): void;
+  Copy(): Handle_Geom_Geometry;
+  IsEqual(theOther: Handle_Geom_BSplineCurve, thePreci: Standard_Real): Standard_Boolean;
+  DumpJson(theOStream: Standard_OStream, theDepth: Graphic3d_ZLayerId): void;
+  static get_type_name(): Standard_Character;
+  static get_type_descriptor(): Handle_Standard_Type;
+  DynamicType(): Handle_Standard_Type;
+  delete(): void;
+}
+export declare class Geom_BSplineCurve_1 extends Geom_BSplineCurve {
+    constructor(Poles: TColgp_Array1OfPnt, Knots: IntTools_CArray1OfReal, Multiplicities: TColStd_Array1OfInteger, Degree: Graphic3d_ZLayerId, Periodic: Standard_Boolean);
+  }
+
+  export declare class Geom_BSplineCurve_2 extends Geom_BSplineCurve {
+    constructor(Poles: TColgp_Array1OfPnt, Weights: IntTools_CArray1OfReal, Knots: IntTools_CArray1OfReal, Multiplicities: TColStd_Array1OfInteger, Degree: Graphic3d_ZLayerId, Periodic: Standard_Boolean, CheckRational: Standard_Boolean);
+  }
+
+export declare class Handle_Geom_BSplineCurve {
+  Nullify(): void;
+  IsNull(): boolean;
+  reset(thePtr: Geom_BSplineCurve): void;
+  get(): Geom_BSplineCurve;
+  delete(): void;
+}
+export declare class Geom2d_BSplineCurve extends Geom2d_BoundedCurve {
+  IncreaseDegree(Degree: Graphic3d_ZLayerId): void;
+  IncreaseMultiplicity_1(Index: Graphic3d_ZLayerId, M: Graphic3d_ZLayerId): void;
+  IncreaseMultiplicity_2(I1: Graphic3d_ZLayerId, I2: Graphic3d_ZLayerId, M: Graphic3d_ZLayerId): void;
+  IncrementMultiplicity(I1: Graphic3d_ZLayerId, I2: Graphic3d_ZLayerId, M: Graphic3d_ZLayerId): void;
+  InsertKnot(U: Standard_Real, M: Graphic3d_ZLayerId, ParametricTolerance: Standard_Real): void;
+  InsertKnots(Knots: IntTools_CArray1OfReal, Mults: TColStd_Array1OfInteger, ParametricTolerance: Standard_Real, Add: Standard_Boolean): void;
+  RemoveKnot(Index: Graphic3d_ZLayerId, M: Graphic3d_ZLayerId, Tolerance: Standard_Real): Standard_Boolean;
+  InsertPoleAfter(Index: Graphic3d_ZLayerId, P: gp_Pnt2d, Weight: Standard_Real): void;
+  InsertPoleBefore(Index: Graphic3d_ZLayerId, P: gp_Pnt2d, Weight: Standard_Real): void;
+  RemovePole(Index: Graphic3d_ZLayerId): void;
+  Reverse(): void;
+  ReversedParameter(U: Standard_Real): Standard_Real;
+  Segment(U1: Standard_Real, U2: Standard_Real, theTolerance: Standard_Real): void;
+  SetKnot_1(Index: Graphic3d_ZLayerId, K: Standard_Real): void;
+  SetKnots(K: IntTools_CArray1OfReal): void;
+  SetKnot_2(Index: Graphic3d_ZLayerId, K: Standard_Real, M: Graphic3d_ZLayerId): void;
+  PeriodicNormalization(U: Standard_Real): void;
+  SetPeriodic(): void;
+  SetOrigin(Index: Graphic3d_ZLayerId): void;
+  SetNotPeriodic(): void;
+  SetPole_1(Index: Graphic3d_ZLayerId, P: gp_Pnt2d): void;
+  SetPole_2(Index: Graphic3d_ZLayerId, P: gp_Pnt2d, Weight: Standard_Real): void;
+  SetWeight(Index: Graphic3d_ZLayerId, Weight: Standard_Real): void;
+  MovePoint(U: Standard_Real, P: gp_Pnt2d, Index1: Graphic3d_ZLayerId, Index2: Graphic3d_ZLayerId, FirstModifiedPole: Graphic3d_ZLayerId, LastModifiedPole: Graphic3d_ZLayerId): void;
+  MovePointAndTangent(U: Standard_Real, P: gp_Pnt2d, Tangent: gp_Vec2d, Tolerance: Standard_Real, StartingCondition: Graphic3d_ZLayerId, EndingCondition: Graphic3d_ZLayerId, ErrorStatus: Graphic3d_ZLayerId): void;
+  IsCN(N: Graphic3d_ZLayerId): Standard_Boolean;
+  IsG1(theTf: Standard_Real, theTl: Standard_Real, theAngTol: Standard_Real): Standard_Boolean;
+  IsClosed(): Standard_Boolean;
+  IsPeriodic(): Standard_Boolean;
+  IsRational(): Standard_Boolean;
+  Continuity(): GeomAbs_Shape;
+  Degree(): Graphic3d_ZLayerId;
+  D0(U: Standard_Real, P: gp_Pnt2d): void;
+  D1(U: Standard_Real, P: gp_Pnt2d, V1: gp_Vec2d): void;
+  D2(U: Standard_Real, P: gp_Pnt2d, V1: gp_Vec2d, V2: gp_Vec2d): void;
+  D3(U: Standard_Real, P: gp_Pnt2d, V1: gp_Vec2d, V2: gp_Vec2d, V3: gp_Vec2d): void;
+  DN(U: Standard_Real, N: Graphic3d_ZLayerId): gp_Vec2d;
+  LocalValue(U: Standard_Real, FromK1: Graphic3d_ZLayerId, ToK2: Graphic3d_ZLayerId): gp_Pnt2d;
+  LocalD0(U: Standard_Real, FromK1: Graphic3d_ZLayerId, ToK2: Graphic3d_ZLayerId, P: gp_Pnt2d): void;
+  LocalD1(U: Standard_Real, FromK1: Graphic3d_ZLayerId, ToK2: Graphic3d_ZLayerId, P: gp_Pnt2d, V1: gp_Vec2d): void;
+  LocalD2(U: Standard_Real, FromK1: Graphic3d_ZLayerId, ToK2: Graphic3d_ZLayerId, P: gp_Pnt2d, V1: gp_Vec2d, V2: gp_Vec2d): void;
+  LocalD3(U: Standard_Real, FromK1: Graphic3d_ZLayerId, ToK2: Graphic3d_ZLayerId, P: gp_Pnt2d, V1: gp_Vec2d, V2: gp_Vec2d, V3: gp_Vec2d): void;
+  LocalDN(U: Standard_Real, FromK1: Graphic3d_ZLayerId, ToK2: Graphic3d_ZLayerId, N: Graphic3d_ZLayerId): gp_Vec2d;
+  EndPoint(): gp_Pnt2d;
+  FirstUKnotIndex(): Graphic3d_ZLayerId;
+  FirstParameter(): Standard_Real;
+  Knot(Index: Graphic3d_ZLayerId): Standard_Real;
+  Knots_1(K: IntTools_CArray1OfReal): void;
+  Knots_2(): IntTools_CArray1OfReal;
+  KnotSequence_1(K: IntTools_CArray1OfReal): void;
+  KnotSequence_2(): IntTools_CArray1OfReal;
+  KnotDistribution(): GeomAbs_BSplKnotDistribution;
+  LastUKnotIndex(): Graphic3d_ZLayerId;
+  LastParameter(): Standard_Real;
+  LocateU(U: Standard_Real, ParametricTolerance: Standard_Real, I1: Graphic3d_ZLayerId, I2: Graphic3d_ZLayerId, WithKnotRepetition: Standard_Boolean): void;
+  Multiplicity(Index: Graphic3d_ZLayerId): Graphic3d_ZLayerId;
+  Multiplicities_1(M: TColStd_Array1OfInteger): void;
+  Multiplicities_2(): TColStd_Array1OfInteger;
+  NbKnots(): Graphic3d_ZLayerId;
+  NbPoles(): Graphic3d_ZLayerId;
+  Pole(Index: Graphic3d_ZLayerId): gp_Pnt2d;
+  Poles_1(P: TColgp_Array1OfPnt2d): void;
+  Poles_2(): TColgp_Array1OfPnt2d;
+  StartPoint(): gp_Pnt2d;
+  Weight(Index: Graphic3d_ZLayerId): Standard_Real;
+  Weights_1(W: IntTools_CArray1OfReal): void;
+  Weights_2(): IntTools_CArray1OfReal;
+  Transform(T: gp_Trsf2d): void;
+  static MaxDegree(): Graphic3d_ZLayerId;
+  Resolution(ToleranceUV: Standard_Real, UTolerance: Standard_Real): void;
+  Copy(): Handle_Geom2d_Geometry;
+  DumpJson(theOStream: Standard_OStream, theDepth: Graphic3d_ZLayerId): void;
+  static get_type_name(): Standard_Character;
+  static get_type_descriptor(): Handle_Standard_Type;
+  DynamicType(): Handle_Standard_Type;
+  delete(): void;
+}
+export declare class Geom2d_BSplineCurve_1 extends Geom2d_BSplineCurve {
+    constructor(Poles: TColgp_Array1OfPnt2d, Knots: IntTools_CArray1OfReal, Multiplicities: TColStd_Array1OfInteger, Degree: Graphic3d_ZLayerId, Periodic: Standard_Boolean);
+  }
+
+  export declare class Geom2d_BSplineCurve_2 extends Geom2d_BSplineCurve {
+    constructor(Poles: TColgp_Array1OfPnt2d, Weights: IntTools_CArray1OfReal, Knots: IntTools_CArray1OfReal, Multiplicities: TColStd_Array1OfInteger, Degree: Graphic3d_ZLayerId, Periodic: Standard_Boolean);
+  }
+
+export declare class Handle_Geom2d_BSplineCurve {
+  Nullify(): void;
+  IsNull(): boolean;
+  reset(thePtr: Geom2d_BSplineCurve): void;
+  get(): Geom2d_BSplineCurve;
+  delete(): void;
+}
+export declare class TColgp_Array2OfPnt {
+  Init(theValue: gp_Pnt): void;
+  Size(): Standard_Integer;
+  Length(): Standard_Integer;
+  NbRows(): Standard_Integer;
+  NbColumns(): Standard_Integer;
+  RowLength(): Standard_Integer;
+  ColLength(): Standard_Integer;
+  LowerRow(): Standard_Integer;
+  UpperRow(): Standard_Integer;
+  LowerCol(): Standard_Integer;
+  UpperCol(): Standard_Integer;
+  IsDeletable(): Standard_Boolean;
+  Assign(theOther: TColgp_Array2OfPnt): TColgp_Array2OfPnt;
+  Move(theOther: TColgp_Array2OfPnt): TColgp_Array2OfPnt;
+  Value(theRow: Standard_Integer, theCol: Standard_Integer): gp_Pnt;
+  ChangeValue(theRow: Standard_Integer, theCol: Standard_Integer): gp_Pnt;
+  SetValue(theRow: Standard_Integer, theCol: Standard_Integer, theItem: gp_Pnt): void;
+  Resize(theRowLower: Standard_Integer, theRowUpper: Standard_Integer, theColLower: Standard_Integer, theColUpper: Standard_Integer, theToCopyData: Standard_Boolean): void;
+  delete(): void;
+}
+export declare class TColgp_Array2OfPnt_1 extends TColgp_Array2OfPnt {
+    constructor();
+  }
+
+  export declare class TColgp_Array2OfPnt_2 extends TColgp_Array2OfPnt {
+    constructor(theRowLower: Standard_Integer, theRowUpper: Standard_Integer, theColLower: Standard_Integer, theColUpper: Standard_Integer);
+  }
+
+  export declare class TColgp_Array2OfPnt_3 extends TColgp_Array2OfPnt {
+    constructor(theOther: TColgp_Array2OfPnt);
+  }
+
+  export declare class TColgp_Array2OfPnt_4 extends TColgp_Array2OfPnt {
+    constructor(theOther: TColgp_Array2OfPnt);
+  }
+
+  export declare class TColgp_Array2OfPnt_5 extends TColgp_Array2OfPnt {
+    constructor(theBegin: gp_Pnt, theRowLower: Standard_Integer, theRowUpper: Standard_Integer, theColLower: Standard_Integer, theColUpper: Standard_Integer);
+  }
+
+export declare class TCollection_ExtendedString {
+  AssignCat_1(other: TCollection_ExtendedString): void;
+  AssignCat_2(theChar: Standard_Utf16Char): void;
+  Cat(other: TCollection_ExtendedString): TCollection_ExtendedString;
+  ChangeAll(aChar: Standard_ExtCharacter, NewChar: Standard_ExtCharacter): void;
+  Clear(): void;
+  Copy(fromwhere: TCollection_ExtendedString): void;
+  Swap(theOther: TCollection_ExtendedString): void;
+  Insert_1(where: Graphic3d_ZLayerId, what: Standard_ExtCharacter): void;
+  Insert_2(where: Graphic3d_ZLayerId, what: TCollection_ExtendedString): void;
+  IsEmpty(): Standard_Boolean;
+  IsEqual_1(other: Standard_ExtString): Standard_Boolean;
+  IsEqual_2(other: TCollection_ExtendedString): Standard_Boolean;
+  IsDifferent_1(other: Standard_ExtString): Standard_Boolean;
+  IsDifferent_2(other: TCollection_ExtendedString): Standard_Boolean;
+  IsLess_1(other: Standard_ExtString): Standard_Boolean;
+  IsLess_2(other: TCollection_ExtendedString): Standard_Boolean;
+  IsGreater_1(other: Standard_ExtString): Standard_Boolean;
+  IsGreater_2(other: TCollection_ExtendedString): Standard_Boolean;
+  StartsWith(theStartString: TCollection_ExtendedString): Standard_Boolean;
+  EndsWith(theEndString: TCollection_ExtendedString): Standard_Boolean;
+  IsAscii(): Standard_Boolean;
+  Length(): Graphic3d_ZLayerId;
+  Print(astream: Standard_OStream): void;
+  RemoveAll(what: Standard_ExtCharacter): void;
+  Remove(where: Graphic3d_ZLayerId, ahowmany: Graphic3d_ZLayerId): void;
+  Search(what: TCollection_ExtendedString): Graphic3d_ZLayerId;
+  SearchFromEnd(what: TCollection_ExtendedString): Graphic3d_ZLayerId;
+  SetValue_1(where: Graphic3d_ZLayerId, what: Standard_ExtCharacter): void;
+  SetValue_2(where: Graphic3d_ZLayerId, what: TCollection_ExtendedString): void;
+  Split(where: Graphic3d_ZLayerId): TCollection_ExtendedString;
+  Token(separators: Standard_ExtString, whichone: Graphic3d_ZLayerId): TCollection_ExtendedString;
+  ToExtString(): Standard_ExtString;
+  Trunc(ahowmany: Graphic3d_ZLayerId): void;
+  Value(where: Graphic3d_ZLayerId): Standard_ExtCharacter;
+  static HashCode(theString: TCollection_ExtendedString, theUpperBound: Graphic3d_ZLayerId): Graphic3d_ZLayerId;
+  static IsEqual_3(theString1: TCollection_ExtendedString, theString2: TCollection_ExtendedString): Standard_Boolean;
+  LengthOfCString(): Graphic3d_ZLayerId;
+  delete(): void;
+}
+export declare class BRepFilletAPI_MakeFillet extends BRepFilletAPI_LocalOperation {
+  constructor(S: TopoDS_Shape, FShape: ChFi3d_FilletShape)
+  SetParams(Tang: Standard_Real, Tesp: Standard_Real, T2d: Standard_Real, TApp3d: Standard_Real, TolApp2d: Standard_Real, Fleche: Standard_Real): void;
+  SetContinuity(InternalContinuity: GeomAbs_Shape, AngularTolerance: Standard_Real): void;
+  Add_1(E: TopoDS_Edge): void;
+  Add_2(Radius: Standard_Real, E: TopoDS_Edge): void;
+  Add_3(R1: Standard_Real, R2: Standard_Real, E: TopoDS_Edge): void;
+  Add_4(L: Handle_Law_Function, E: TopoDS_Edge): void;
+  Add_5(UandR: TColgp_Array1OfPnt2d, E: TopoDS_Edge): void;
+  SetRadius_1(Radius: Standard_Real, IC: Graphic3d_ZLayerId, IinC: Graphic3d_ZLayerId): void;
+  SetRadius_2(R1: Standard_Real, R2: Standard_Real, IC: Graphic3d_ZLayerId, IinC: Graphic3d_ZLayerId): void;
+  SetRadius_3(L: Handle_Law_Function, IC: Graphic3d_ZLayerId, IinC: Graphic3d_ZLayerId): void;
+  SetRadius_4(UandR: TColgp_Array1OfPnt2d, IC: Graphic3d_ZLayerId, IinC: Graphic3d_ZLayerId): void;
+  ResetContour(IC: Graphic3d_ZLayerId): void;
+  IsConstant_1(IC: Graphic3d_ZLayerId): Standard_Boolean;
+  Radius_1(IC: Graphic3d_ZLayerId): Standard_Real;
+  IsConstant_2(IC: Graphic3d_ZLayerId, E: TopoDS_Edge): Standard_Boolean;
+  Radius_2(IC: Graphic3d_ZLayerId, E: TopoDS_Edge): Standard_Real;
+  SetRadius_5(Radius: Standard_Real, IC: Graphic3d_ZLayerId, E: TopoDS_Edge): void;
+  SetRadius_6(Radius: Standard_Real, IC: Graphic3d_ZLayerId, V: TopoDS_Vertex): void;
+  GetBounds(IC: Graphic3d_ZLayerId, E: TopoDS_Edge, F: Standard_Real, L: Standard_Real): Standard_Boolean;
+  GetLaw(IC: Graphic3d_ZLayerId, E: TopoDS_Edge): Handle_Law_Function;
+  SetLaw(IC: Graphic3d_ZLayerId, E: TopoDS_Edge, L: Handle_Law_Function): void;
+  SetFilletShape(FShape: ChFi3d_FilletShape): void;
+  GetFilletShape(): ChFi3d_FilletShape;
+  NbContours(): Graphic3d_ZLayerId;
+  Contour(E: TopoDS_Edge): Graphic3d_ZLayerId;
+  NbEdges(I: Graphic3d_ZLayerId): Graphic3d_ZLayerId;
+  Edge(I: Graphic3d_ZLayerId, J: Graphic3d_ZLayerId): TopoDS_Edge;
+  Remove(E: TopoDS_Edge): void;
+  Length(IC: Graphic3d_ZLayerId): Standard_Real;
+  FirstVertex(IC: Graphic3d_ZLayerId): TopoDS_Vertex;
+  LastVertex(IC: Graphic3d_ZLayerId): TopoDS_Vertex;
+  Abscissa(IC: Graphic3d_ZLayerId, V: TopoDS_Vertex): Standard_Real;
+  RelativeAbscissa(IC: Graphic3d_ZLayerId, V: TopoDS_Vertex): Standard_Real;
+  ClosedAndTangent(IC: Graphic3d_ZLayerId): Standard_Boolean;
+  Closed(IC: Graphic3d_ZLayerId): Standard_Boolean;
+  Build(theRange: Message_ProgressRange): void;
+  Reset(): void;
+  Builder(): Handle_TopOpeBRepBuild_HBuilder;
+  Generated(EorV: TopoDS_Shape): TopTools_ListOfShape;
+  Modified(F: TopoDS_Shape): TopTools_ListOfShape;
+  IsDeleted(F: TopoDS_Shape): Standard_Boolean;
+  NbSurfaces(): Graphic3d_ZLayerId;
+  NewFaces(I: Graphic3d_ZLayerId): TopTools_ListOfShape;
+  Simulate(IC: Graphic3d_ZLayerId): void;
+  NbSurf(IC: Graphic3d_ZLayerId): Graphic3d_ZLayerId;
+  Sect(IC: Graphic3d_ZLayerId, IS: Graphic3d_ZLayerId): Handle_ChFiDS_SecHArray1;
+  NbFaultyContours(): Graphic3d_ZLayerId;
+  FaultyContour(I: Graphic3d_ZLayerId): Graphic3d_ZLayerId;
+  NbComputedSurfaces(IC: Graphic3d_ZLayerId): Graphic3d_ZLayerId;
+  ComputedSurface(IC: Graphic3d_ZLayerId, IS: Graphic3d_ZLayerId): Handle_Geom_Surface;
+  NbFaultyVertices(): Graphic3d_ZLayerId;
+  FaultyVertex(IV: Graphic3d_ZLayerId): TopoDS_Vertex;
+  HasResult(): Standard_Boolean;
+  BadShape(): TopoDS_Shape;
+  StripeStatus(IC: Graphic3d_ZLayerId): ChFiDS_ErrorStatus;
+  delete(): void;
+}
+export declare class BRepFilletAPI_MakeChamfer extends BRepFilletAPI_LocalOperation {
+  constructor(S: TopoDS_Shape)
+  Add_1(E: TopoDS_Edge): void;
+  Add_2(Dis: Standard_Real, E: TopoDS_Edge): void;
+  SetDist(Dis: Standard_Real, IC: Graphic3d_ZLayerId, F: TopoDS_Face): void;
+  GetDist(IC: Graphic3d_ZLayerId, Dis: Standard_Real): void;
+  Add_3(Dis1: Standard_Real, Dis2: Standard_Real, E: TopoDS_Edge, F: TopoDS_Face): void;
+  SetDists(Dis1: Standard_Real, Dis2: Standard_Real, IC: Graphic3d_ZLayerId, F: TopoDS_Face): void;
+  Dists(IC: Graphic3d_ZLayerId, Dis1: Standard_Real, Dis2: Standard_Real): void;
+  AddDA(Dis: Standard_Real, Angle: Standard_Real, E: TopoDS_Edge, F: TopoDS_Face): void;
+  SetDistAngle(Dis: Standard_Real, Angle: Standard_Real, IC: Graphic3d_ZLayerId, F: TopoDS_Face): void;
+  GetDistAngle(IC: Graphic3d_ZLayerId, Dis: Standard_Real, Angle: Standard_Real): void;
+  SetMode(theMode: ChFiDS_ChamfMode): void;
+  IsSymetric(IC: Graphic3d_ZLayerId): Standard_Boolean;
+  IsTwoDistances(IC: Graphic3d_ZLayerId): Standard_Boolean;
+  IsDistanceAngle(IC: Graphic3d_ZLayerId): Standard_Boolean;
+  ResetContour(IC: Graphic3d_ZLayerId): void;
+  NbContours(): Graphic3d_ZLayerId;
+  Contour(E: TopoDS_Edge): Graphic3d_ZLayerId;
+  NbEdges(I: Graphic3d_ZLayerId): Graphic3d_ZLayerId;
+  Edge(I: Graphic3d_ZLayerId, J: Graphic3d_ZLayerId): TopoDS_Edge;
+  Remove(E: TopoDS_Edge): void;
+  Length(IC: Graphic3d_ZLayerId): Standard_Real;
+  FirstVertex(IC: Graphic3d_ZLayerId): TopoDS_Vertex;
+  LastVertex(IC: Graphic3d_ZLayerId): TopoDS_Vertex;
+  Abscissa(IC: Graphic3d_ZLayerId, V: TopoDS_Vertex): Standard_Real;
+  RelativeAbscissa(IC: Graphic3d_ZLayerId, V: TopoDS_Vertex): Standard_Real;
+  ClosedAndTangent(IC: Graphic3d_ZLayerId): Standard_Boolean;
+  Closed(IC: Graphic3d_ZLayerId): Standard_Boolean;
+  Build(theRange: Message_ProgressRange): void;
+  Reset(): void;
+  Builder(): Handle_TopOpeBRepBuild_HBuilder;
+  Generated(EorV: TopoDS_Shape): TopTools_ListOfShape;
+  Modified(F: TopoDS_Shape): TopTools_ListOfShape;
+  IsDeleted(F: TopoDS_Shape): Standard_Boolean;
+  Simulate(IC: Graphic3d_ZLayerId): void;
+  NbSurf(IC: Graphic3d_ZLayerId): Graphic3d_ZLayerId;
+  Sect(IC: Graphic3d_ZLayerId, IS: Graphic3d_ZLayerId): Handle_ChFiDS_SecHArray1;
+  delete(): void;
+}
+export declare class BRepCheck_Analyzer {
+  constructor(S: TopoDS_Shape, GeomControls: Standard_Boolean, theIsParallel: Standard_Boolean)
+  Init(S: TopoDS_Shape, GeomControls: Standard_Boolean, theIsParallel: Standard_Boolean): void;
+  IsValid_1(S: TopoDS_Shape): Standard_Boolean;
+  IsValid_2(): Standard_Boolean;
+  Result(theSubS: TopoDS_Shape): Handle_BRepCheck_Result;
+  delete(): void;
+}
+export declare class STEPControl_Reader extends XSControl_Reader {
+  StepModel(): Handle_StepData_StepModel;
+  TransferRoot(num: Graphic3d_ZLayerId, theProgress: Message_ProgressRange): Standard_Boolean;
+  NbRootsForTransfer(): Graphic3d_ZLayerId;
+  FileUnits(theUnitLengthNames: TColStd_SequenceOfAsciiString, theUnitAngleNames: TColStd_SequenceOfAsciiString, theUnitSolidAngleNames: TColStd_SequenceOfAsciiString): void;
+  SetSystemLengthUnit(theLengthUnit: Standard_Real): void;
+  SystemLengthUnit(): Standard_Real;
+  delete(): void;
+}
+export declare class STEPControl_Reader_1 extends STEPControl_Reader {
+    constructor();
+  }
+
+  export declare class STEPControl_Reader_2 extends STEPControl_Reader {
+    constructor(WS: Handle_XSControl_WorkSession, scratch: Standard_Boolean);
+  }
+
+export declare type STEPControl_StepModelType = {
+  STEPControl_AsIs: {};
+  STEPControl_ManifoldSolidBrep: {};
+  STEPControl_BrepWithVoids: {};
+  STEPControl_FacetedBrep: {};
+  STEPControl_FacetedBrepAndBrepWithVoids: {};
+  STEPControl_ShellBasedSurfaceModel: {};
+  STEPControl_GeometricCurveSet: {};
+  STEPControl_Hybrid: {};
+}
+export declare class STEPControl_Writer {
+  SetTolerance(Tol: Standard_Real): void;
+  UnsetTolerance(): void;
+  SetWS(WS: Handle_XSControl_WorkSession, scratch: Standard_Boolean): void;
+  WS(): Handle_XSControl_WorkSession;
+  Model(newone: Standard_Boolean): Handle_StepData_StepModel;
+  Transfer(sh: TopoDS_Shape, mode: STEPControl_StepModelType, compgraph: Standard_Boolean, theProgress: Message_ProgressRange): IFSelect_ReturnStatus;
+  Write(filename: Standard_CString): IFSelect_ReturnStatus;
+  PrintStatsTransfer(what: Graphic3d_ZLayerId, mode: Graphic3d_ZLayerId): void;
+  delete(): void;
+}
+export declare class STEPControl_Writer_1 extends STEPControl_Writer {
+    constructor();
+  }
+
+  export declare class STEPControl_Writer_2 extends STEPControl_Writer {
+    constructor(WS: Handle_XSControl_WorkSession, scratch: Standard_Boolean);
+  }
+
+export declare class ShapeFix_EdgeConnect {
+  constructor()
+  Add_1(aFirst: TopoDS_Edge, aSecond: TopoDS_Edge): void;
+  Add_2(aShape: TopoDS_Shape): void;
+  Build(): void;
+  Clear(): void;
+  delete(): void;
+}
+export declare class BRepGProp {
+  constructor();
+  static LinearProperties(S: TopoDS_Shape, LProps: GProp_GProps, SkipShared: Standard_Boolean, UseTriangulation: Standard_Boolean): void;
+  static SurfaceProperties_1(S: TopoDS_Shape, SProps: GProp_GProps, SkipShared: Standard_Boolean, UseTriangulation: Standard_Boolean): void;
+  static SurfaceProperties_2(S: TopoDS_Shape, SProps: GProp_GProps, Eps: Standard_Real, SkipShared: Standard_Boolean): Standard_Real;
+  static VolumeProperties_1(S: TopoDS_Shape, VProps: GProp_GProps, OnlyClosed: Standard_Boolean, SkipShared: Standard_Boolean, UseTriangulation: Standard_Boolean): void;
+  static VolumeProperties_2(S: TopoDS_Shape, VProps: GProp_GProps, Eps: Standard_Real, OnlyClosed: Standard_Boolean, SkipShared: Standard_Boolean): Standard_Real;
+  static VolumePropertiesGK_1(S: TopoDS_Shape, VProps: GProp_GProps, Eps: Standard_Real, OnlyClosed: Standard_Boolean, IsUseSpan: Standard_Boolean, CGFlag: Standard_Boolean, IFlag: Standard_Boolean, SkipShared: Standard_Boolean): Standard_Real;
+  static VolumePropertiesGK_2(S: TopoDS_Shape, VProps: GProp_GProps, thePln: gp_Pln, Eps: Standard_Real, OnlyClosed: Standard_Boolean, IsUseSpan: Standard_Boolean, CGFlag: Standard_Boolean, IFlag: Standard_Boolean, SkipShared: Standard_Boolean): Standard_Real;
+  delete(): void;
+}
+export declare class GProp_GProps {
+  Add(Item: GProp_GProps, Density: Standard_Real): void;
+  Mass(): Standard_Real;
+  CentreOfMass(): gp_Pnt;
+  MatrixOfInertia(): gp_Mat;
+  StaticMoments(Ix: Standard_Real, Iy: Standard_Real, Iz: Standard_Real): void;
+  MomentOfInertia(A: gp_Ax1): Standard_Real;
+  PrincipalProperties(): GProp_PrincipalProps;
+  RadiusOfGyration(A: gp_Ax1): Standard_Real;
+  delete(): void;
+}
+export declare class GProp_GProps_1 extends GProp_GProps {
+    constructor();
+  }
+
+  export declare class GProp_GProps_2 extends GProp_GProps {
+    constructor(SystemLocation: gp_Pnt);
+  }
+
+export declare class Geom_BSplineCurve extends Geom_BoundedCurve {
+  IncreaseDegree(Degree: Graphic3d_ZLayerId): void;
+  IncreaseMultiplicity_1(Index: Graphic3d_ZLayerId, M: Graphic3d_ZLayerId): void;
+  IncreaseMultiplicity_2(I1: Graphic3d_ZLayerId, I2: Graphic3d_ZLayerId, M: Graphic3d_ZLayerId): void;
+  IncrementMultiplicity(I1: Graphic3d_ZLayerId, I2: Graphic3d_ZLayerId, M: Graphic3d_ZLayerId): void;
+  InsertKnot(U: Standard_Real, M: Graphic3d_ZLayerId, ParametricTolerance: Standard_Real, Add: Standard_Boolean): void;
+  InsertKnots(Knots: IntTools_CArray1OfReal, Mults: TColStd_Array1OfInteger, ParametricTolerance: Standard_Real, Add: Standard_Boolean): void;
+  RemoveKnot(Index: Graphic3d_ZLayerId, M: Graphic3d_ZLayerId, Tolerance: Standard_Real): Standard_Boolean;
+  Reverse(): void;
+  ReversedParameter(U: Standard_Real): Standard_Real;
+  Segment(U1: Standard_Real, U2: Standard_Real, theTolerance: Standard_Real): void;
+  SetKnot_1(Index: Graphic3d_ZLayerId, K: Standard_Real): void;
+  SetKnots(K: IntTools_CArray1OfReal): void;
+  SetKnot_2(Index: Graphic3d_ZLayerId, K: Standard_Real, M: Graphic3d_ZLayerId): void;
+  PeriodicNormalization(U: Standard_Real): void;
+  SetPeriodic(): void;
+  SetOrigin_1(Index: Graphic3d_ZLayerId): void;
+  SetOrigin_2(U: Standard_Real, Tol: Standard_Real): void;
+  SetNotPeriodic(): void;
+  SetPole_1(Index: Graphic3d_ZLayerId, P: gp_Pnt): void;
+  SetPole_2(Index: Graphic3d_ZLayerId, P: gp_Pnt, Weight: Standard_Real): void;
+  SetWeight(Index: Graphic3d_ZLayerId, Weight: Standard_Real): void;
+  MovePoint(U: Standard_Real, P: gp_Pnt, Index1: Graphic3d_ZLayerId, Index2: Graphic3d_ZLayerId, FirstModifiedPole: Graphic3d_ZLayerId, LastModifiedPole: Graphic3d_ZLayerId): void;
+  MovePointAndTangent(U: Standard_Real, P: gp_Pnt, Tangent: gp_Vec, Tolerance: Standard_Real, StartingCondition: Graphic3d_ZLayerId, EndingCondition: Graphic3d_ZLayerId, ErrorStatus: Graphic3d_ZLayerId): void;
+  IsCN(N: Graphic3d_ZLayerId): Standard_Boolean;
+  IsG1(theTf: Standard_Real, theTl: Standard_Real, theAngTol: Standard_Real): Standard_Boolean;
+  IsClosed(): Standard_Boolean;
+  IsPeriodic(): Standard_Boolean;
+  IsRational(): Standard_Boolean;
+  Continuity(): GeomAbs_Shape;
+  Degree(): Graphic3d_ZLayerId;
+  D0(U: Standard_Real, P: gp_Pnt): void;
+  D1(U: Standard_Real, P: gp_Pnt, V1: gp_Vec): void;
+  D2(U: Standard_Real, P: gp_Pnt, V1: gp_Vec, V2: gp_Vec): void;
+  D3(U: Standard_Real, P: gp_Pnt, V1: gp_Vec, V2: gp_Vec, V3: gp_Vec): void;
+  DN(U: Standard_Real, N: Graphic3d_ZLayerId): gp_Vec;
+  LocalValue(U: Standard_Real, FromK1: Graphic3d_ZLayerId, ToK2: Graphic3d_ZLayerId): gp_Pnt;
+  LocalD0(U: Standard_Real, FromK1: Graphic3d_ZLayerId, ToK2: Graphic3d_ZLayerId, P: gp_Pnt): void;
+  LocalD1(U: Standard_Real, FromK1: Graphic3d_ZLayerId, ToK2: Graphic3d_ZLayerId, P: gp_Pnt, V1: gp_Vec): void;
+  LocalD2(U: Standard_Real, FromK1: Graphic3d_ZLayerId, ToK2: Graphic3d_ZLayerId, P: gp_Pnt, V1: gp_Vec, V2: gp_Vec): void;
+  LocalD3(U: Standard_Real, FromK1: Graphic3d_ZLayerId, ToK2: Graphic3d_ZLayerId, P: gp_Pnt, V1: gp_Vec, V2: gp_Vec, V3: gp_Vec): void;
+  LocalDN(U: Standard_Real, FromK1: Graphic3d_ZLayerId, ToK2: Graphic3d_ZLayerId, N: Graphic3d_ZLayerId): gp_Vec;
+  EndPoint(): gp_Pnt;
+  FirstUKnotIndex(): Graphic3d_ZLayerId;
+  FirstParameter(): Standard_Real;
+  Knot(Index: Graphic3d_ZLayerId): Standard_Real;
+  Knots_1(K: IntTools_CArray1OfReal): void;
+  Knots_2(): IntTools_CArray1OfReal;
+  KnotSequence_1(K: IntTools_CArray1OfReal): void;
+  KnotSequence_2(): IntTools_CArray1OfReal;
+  KnotDistribution(): GeomAbs_BSplKnotDistribution;
+  LastUKnotIndex(): Graphic3d_ZLayerId;
+  LastParameter(): Standard_Real;
+  LocateU(U: Standard_Real, ParametricTolerance: Standard_Real, I1: Graphic3d_ZLayerId, I2: Graphic3d_ZLayerId, WithKnotRepetition: Standard_Boolean): void;
+  Multiplicity(Index: Graphic3d_ZLayerId): Graphic3d_ZLayerId;
+  Multiplicities_1(M: TColStd_Array1OfInteger): void;
+  Multiplicities_2(): TColStd_Array1OfInteger;
+  NbKnots(): Graphic3d_ZLayerId;
+  NbPoles(): Graphic3d_ZLayerId;
+  Pole(Index: Graphic3d_ZLayerId): gp_Pnt;
+  Poles_1(P: TColgp_Array1OfPnt): void;
+  Poles_2(): TColgp_Array1OfPnt;
+  StartPoint(): gp_Pnt;
+  Weight(Index: Graphic3d_ZLayerId): Standard_Real;
+  Weights_1(W: IntTools_CArray1OfReal): void;
+  Weights_2(): IntTools_CArray1OfReal;
+  Transform(T: gp_Trsf): void;
+  static MaxDegree(): Graphic3d_ZLayerId;
+  Resolution(Tolerance3D: Standard_Real, UTolerance: Standard_Real): void;
+  Copy(): Handle_Geom_Geometry;
+  IsEqual(theOther: Handle_Geom_BSplineCurve, thePreci: Standard_Real): Standard_Boolean;
+  DumpJson(theOStream: Standard_OStream, theDepth: Graphic3d_ZLayerId): void;
+  static get_type_name(): Standard_Character;
+  static get_type_descriptor(): Handle_Standard_Type;
+  DynamicType(): Handle_Standard_Type;
+  delete(): void;
+}
+export declare class BRepOffsetAPI_MakeFilling extends BRepBuilderAPI_MakeShape {
+  constructor(Degree: Graphic3d_ZLayerId, NbPtsOnCur: Graphic3d_ZLayerId, NbIter: Graphic3d_ZLayerId, Anisotropie: Standard_Boolean, Tol2d: Standard_Real, Tol3d: Standard_Real, TolAng: Standard_Real, TolCurv: Standard_Real, MaxDeg: Graphic3d_ZLayerId, MaxSegments: Graphic3d_ZLayerId)
+  SetConstrParam(Tol2d: Standard_Real, Tol3d: Standard_Real, TolAng: Standard_Real, TolCurv: Standard_Real): void;
+  SetResolParam(Degree: Graphic3d_ZLayerId, NbPtsOnCur: Graphic3d_ZLayerId, NbIter: Graphic3d_ZLayerId, Anisotropie: Standard_Boolean): void;
+  SetApproxParam(MaxDeg: Graphic3d_ZLayerId, MaxSegments: Graphic3d_ZLayerId): void;
+  LoadInitSurface(Surf: TopoDS_Face): void;
+  Add_1(Constr: TopoDS_Edge, Order: GeomAbs_Shape, IsBound: Standard_Boolean): Graphic3d_ZLayerId;
+  Add_2(Constr: TopoDS_Edge, Support: TopoDS_Face, Order: GeomAbs_Shape, IsBound: Standard_Boolean): Graphic3d_ZLayerId;
+  Add_3(Support: TopoDS_Face, Order: GeomAbs_Shape): Graphic3d_ZLayerId;
+  Add_4(Point: gp_Pnt): Graphic3d_ZLayerId;
+  Add_5(U: Standard_Real, V: Standard_Real, Support: TopoDS_Face, Order: GeomAbs_Shape): Graphic3d_ZLayerId;
+  Build(theRange: Message_ProgressRange): void;
+  IsDone(): Standard_Boolean;
+  Generated(S: TopoDS_Shape): TopTools_ListOfShape;
+  G0Error_1(): Standard_Real;
+  G1Error_1(): Standard_Real;
+  G2Error_1(): Standard_Real;
+  G0Error_2(Index: Graphic3d_ZLayerId): Standard_Real;
+  G1Error_2(Index: Graphic3d_ZLayerId): Standard_Real;
+  G2Error_2(Index: Graphic3d_ZLayerId): Standard_Real;
+  delete(): void;
+}
+export declare class BRepPrimAPI_MakeTorus extends BRepPrimAPI_MakeOneAxis {
+  OneAxis(): Standard_Address;
+  Torus(): BRepPrim_Torus;
+  delete(): void;
+}
+export declare class BRepPrimAPI_MakeTorus_1 extends BRepPrimAPI_MakeTorus {
+    constructor(R1: Standard_Real, R2: Standard_Real);
+  }
+
+  export declare class BRepPrimAPI_MakeTorus_2 extends BRepPrimAPI_MakeTorus {
+    constructor(R1: Standard_Real, R2: Standard_Real, angle: Standard_Real);
+  }
+
+  export declare class BRepPrimAPI_MakeTorus_3 extends BRepPrimAPI_MakeTorus {
+    constructor(R1: Standard_Real, R2: Standard_Real, angle1: Standard_Real, angle2: Standard_Real);
+  }
+
+  export declare class BRepPrimAPI_MakeTorus_4 extends BRepPrimAPI_MakeTorus {
+    constructor(R1: Standard_Real, R2: Standard_Real, angle1: Standard_Real, angle2: Standard_Real, angle: Standard_Real);
+  }
+
+  export declare class BRepPrimAPI_MakeTorus_5 extends BRepPrimAPI_MakeTorus {
+    constructor(Axes: gp_Ax2, R1: Standard_Real, R2: Standard_Real);
+  }
+
+  export declare class BRepPrimAPI_MakeTorus_6 extends BRepPrimAPI_MakeTorus {
+    constructor(Axes: gp_Ax2, R1: Standard_Real, R2: Standard_Real, angle: Standard_Real);
+  }
+
+  export declare class BRepPrimAPI_MakeTorus_7 extends BRepPrimAPI_MakeTorus {
+    constructor(Axes: gp_Ax2, R1: Standard_Real, R2: Standard_Real, angle1: Standard_Real, angle2: Standard_Real);
+  }
+
+  export declare class BRepPrimAPI_MakeTorus_8 extends BRepPrimAPI_MakeTorus {
+    constructor(Axes: gp_Ax2, R1: Standard_Real, R2: Standard_Real, angle1: Standard_Real, angle2: Standard_Real, angle: Standard_Real);
+  }
+
+export declare class BRepTools {
+  constructor();
+  static UVBounds_1(F: TopoDS_Face, UMin: Standard_Real, UMax: Standard_Real, VMin: Standard_Real, VMax: Standard_Real): void;
+  static UVBounds_2(F: TopoDS_Face, W: TopoDS_Wire, UMin: Standard_Real, UMax: Standard_Real, VMin: Standard_Real, VMax: Standard_Real): void;
+  static UVBounds_3(F: TopoDS_Face, E: TopoDS_Edge, UMin: Standard_Real, UMax: Standard_Real, VMin: Standard_Real, VMax: Standard_Real): void;
+  static AddUVBounds_1(F: TopoDS_Face, B: Bnd_Box2d): void;
+  static AddUVBounds_2(F: TopoDS_Face, W: TopoDS_Wire, B: Bnd_Box2d): void;
+  static AddUVBounds_3(F: TopoDS_Face, E: TopoDS_Edge, B: Bnd_Box2d): void;
+  static Update_1(V: TopoDS_Vertex): void;
+  static Update_2(E: TopoDS_Edge): void;
+  static Update_3(W: TopoDS_Wire): void;
+  static Update_4(F: TopoDS_Face): void;
+  static Update_5(S: TopoDS_Shell): void;
+  static Update_6(S: TopoDS_Solid): void;
+  static Update_7(C: TopoDS_CompSolid): void;
+  static Update_8(C: TopoDS_Compound): void;
+  static Update_9(S: TopoDS_Shape): void;
+  static UpdateFaceUVPoints(theF: TopoDS_Face): void;
+  static Clean(theShape: TopoDS_Shape, theForce: Standard_Boolean): void;
+  static CleanGeometry(theShape: TopoDS_Shape): void;
+  static RemoveUnusedPCurves(S: TopoDS_Shape): void;
+  static Triangulation(theShape: TopoDS_Shape, theLinDefl: Standard_Real, theToCheckFreeEdges: Standard_Boolean): Standard_Boolean;
+  static LoadTriangulation(theShape: TopoDS_Shape, theTriangulationIdx: Graphic3d_ZLayerId, theToSetAsActive: Standard_Boolean, theFileSystem: any): Standard_Boolean;
+  static UnloadTriangulation(theShape: TopoDS_Shape, theTriangulationIdx: Graphic3d_ZLayerId): Standard_Boolean;
+  static ActivateTriangulation(theShape: TopoDS_Shape, theTriangulationIdx: Graphic3d_ZLayerId, theToActivateStrictly: Standard_Boolean): Standard_Boolean;
+  static LoadAllTriangulations(theShape: TopoDS_Shape, theFileSystem: any): Standard_Boolean;
+  static UnloadAllTriangulations(theShape: TopoDS_Shape): Standard_Boolean;
+  static Compare_1(V1: TopoDS_Vertex, V2: TopoDS_Vertex): Standard_Boolean;
+  static Compare_2(E1: TopoDS_Edge, E2: TopoDS_Edge): Standard_Boolean;
+  static OuterWire(F: TopoDS_Face): TopoDS_Wire;
+  static Map3DEdges(S: TopoDS_Shape, M: TopTools_IndexedMapOfShape): void;
+  static IsReallyClosed(E: TopoDS_Edge, F: TopoDS_Face): Standard_Boolean;
+  static DetectClosedness(theFace: TopoDS_Face, theUclosed: Standard_Boolean, theVclosed: Standard_Boolean): void;
+  static Dump(Sh: TopoDS_Shape, S: Standard_OStream): void;
+  static Write_1(theShape: TopoDS_Shape, theStream: Standard_OStream, theProgress: Message_ProgressRange): void;
+  static Write_2(theShape: TopoDS_Shape, theStream: Standard_OStream, theWithTriangles: Standard_Boolean, theWithNormals: Standard_Boolean, theVersion: TopTools_FormatVersion, theProgress: Message_ProgressRange): void;
+  static Read_1(Sh: TopoDS_Shape, S: Standard_IStream, B: BRep_Builder, theProgress: Message_ProgressRange): void;
+  static Write_3(theShape: TopoDS_Shape, theFile: Standard_CString, theProgress: Message_ProgressRange): Standard_Boolean;
+  static Write_4(theShape: TopoDS_Shape, theFile: Standard_CString, theWithTriangles: Standard_Boolean, theWithNormals: Standard_Boolean, theVersion: TopTools_FormatVersion, theProgress: Message_ProgressRange): Standard_Boolean;
+  static Read_2(Sh: TopoDS_Shape, File: Standard_CString, B: BRep_Builder, theProgress: Message_ProgressRange): Standard_Boolean;
+  static EvalAndUpdateTol(theE: TopoDS_Edge, theC3d: Handle_Geom_Curve, theC2d: Handle_Geom2d_Curve, theS: Handle_Geom_Surface, theF: Standard_Real, theL: Standard_Real): Standard_Real;
+  static OriEdgeInFace(theEdge: TopoDS_Edge, theFace: TopoDS_Face): TopAbs_Orientation;
+  static RemoveInternals(theS: TopoDS_Shape, theForce: Standard_Boolean): void;
+  static CheckLocations(theS: TopoDS_Shape, theProblemShapes: TopTools_ListOfShape): void;
+  delete(): void;
+}
