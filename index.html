@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f7f8fa"><meta name="description" content="Veldra 3D — independent NURBS modeling and visual parametric design in your browser.">
+<title>Veldra 3D — Canopy study</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%232d716a'/%3E%3Cpath d='M9 12l11 19 11-19M13 12l7 12 7-12' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <header class="titlebar">
+    <a class="brand" href="#" aria-label="About Veldra" data-command="about"><svg viewBox="0 0 30 30"><rect width="30" height="30" rx="8" fill="currentColor"/><path d="m7 8 8 15L23 8M11 8l4 8 4-8" fill="none" stroke="white" stroke-width="1.6"/></svg><span>veldra<span class="brand-3d">3D</span></span></a>
+    <nav id="menubar" aria-label="Application menus"></nav>
+    <div class="titlebar-right"><span class="local-label"><i></i> LOCAL WORKSPACE</span><button id="theme-button" class="icon-button" title="Toggle light / dark interface" aria-label="Toggle theme"></button><button class="workspace-switch" data-command="weave"><span class="weave-symbol">⌘</span> Weave <span class="shortcut">W</span></button></div>
+  </header>
+  <section class="command-area" aria-label="Command line">
+    <div class="history-line"><span class="muted">History</span><span id="last-command">Welcome to Veldra. Geometry, without limits on your imagination.</span><button id="history-toggle" title="Show command history" aria-label="Show command history">⌃</button></div>
+    <div class="command-line"><span class="command-label">Command <span>›</span></span><input id="command-input" aria-label="Command" autocomplete="off" spellcheck="false" placeholder="Type a command…"><span class="command-hint">Press <kbd>/</kbd> to search commands</span></div>
+  </section>
+  <section class="ribbon" aria-label="Modeling tools"><div class="ribbon-tabs" id="ribbon-tabs"></div><div class="ribbon-tools" id="ribbon-tools"></div></section>
+  <main class="main-layout">
+    <aside class="toolrail" id="toolrail" aria-label="Quick modeling tools"></aside>
+    <section class="work-area">
+      <div class="document-tabs"><div class="document-tab active"><span class="document-dot"></span><span id="document-title">Canopy study.veldra</span><span id="dirty-dot" title="Local autosave enabled">•</span></div><button data-command="new" class="icon-button small" aria-label="New document">+</button><div class="view-workspace"><button class="active" id="model-workspace" data-command="modelworkspace">Model</button><button id="param-workspace" data-command="paramworkspace">Parametric</button></div></div>
+      <section id="viewport-area" tabindex="0" aria-label="3D modeling viewport">
+        <canvas id="render-canvas"></canvas><canvas id="overlay-canvas"></canvas>
+        <div id="viewport-labels"></div>
+        <div class="viewport-toolbar"><button id="display-button" title="Display mode"><span id="display-label">Shaded</span><span class="chevron">⌄</span></button><button data-command="fourview" id="fourview-button" title="Four viewports" aria-label="Toggle four viewports"></button><button data-command="zoomextents" title="Zoom extents" aria-label="Zoom extents" id="fit-view-button"></button></div>
+        <div class="viewport-caption"><span class="eyebrow">EXPLORATIONS / 001</span><h1>Form follows possibility.</h1><span class="caption-detail">Canopy study <span>·</span> NURBS + parametric design</span></div>
+        <div id="selection-info" class="selection-info"></div>
+        <div class="view-navigation-hint">Drag to select <span>·</span> Right-drag to orbit <span>·</span> Shift-drag to pan</div>
+        <div id="loading"><span class="loading-logo">V</span><strong>Opening your workspace</strong><span>Initializing geometry and graphics</span></div>
+      </section>
+      <div id="graph-resizer" role="separator" aria-label="Resize Weave panel" aria-orientation="horizontal"></div>
+      <section id="weave-panel" aria-label="Weave parametric editor">
+        <header class="weave-header"><div class="weave-heading"><span class="weave-mark">⌘</span><strong>Weave</strong><span class="divider"></span><span id="graph-title">Canopy definition</span><span class="live-badge"><i></i> LIVE</span></div><div class="weave-actions"><button id="add-component" title="Search components">+ <span>Component</span></button><button id="graph-fit" title="Fit definition" aria-label="Fit definition"></button><button id="graph-play" title="Pause solver" aria-label="Pause solver"></button><button id="graph-bake" class="bake-button" title="Bake visible outputs into editable document objects">Bake geometry <span>↗</span></button><button data-command="weave" class="icon-button" title="Hide Weave" aria-label="Hide Weave">−</button></div></header>
+        <div class="weave-categories" id="weave-categories"></div>
+        <div id="graph-canvas" tabindex="0" aria-label="Visual component graph"><div id="graph-world"><svg id="graph-wires" xmlns="http://www.w3.org/2000/svg"></svg><div id="graph-nodes"></div></div><div class="graph-empty-hint">Double-click the canvas to add a component</div></div>
+        <footer class="graph-status"><span id="graph-status">8 components · 7 connections</span><span>Double-click to add <span class="dot-separator">·</span> Drag ports to connect <span class="dot-separator">·</span> Alt-click input to disconnect</span><span id="graph-zoom">100%</span></footer>
+      </section>
+    </section>
+    <aside class="inspector"><div class="inspector-tabs" id="inspector-tabs"><button data-panel="properties" class="active">Properties</button><button data-panel="layers">Layers</button><button data-panel="objects">Objects</button><button data-panel="materials" title="Materials">◈</button></div><div id="inspector-content"></div><div class="inspector-footer"><span id="document-object-count">0 objects</span><span><span class="autosave-dot"></span> Autosaved locally</span></div></aside>
+  </main>
+  <footer class="statusbar"><span id="coordinates">X 0.000 <span>Y 0.000</span> Z 0.000</span><span class="status-separator"></span><button id="toggle-grid" class="active" data-command="grid">Grid</button><button id="toggle-snap" data-command="snap">Snap</button><button id="toggle-ortho" data-command="ortho">Ortho</button><button id="toggle-osnap" class="active" data-command="osnap">Osnap</button><button id="toggle-gumball" class="active" data-command="gumball">Gumball</button><button id="toggle-points" data-command="points">Points</button><span class="status-spacer"></span><button data-command="units" id="units-status">Millimeters</button><span class="status-separator"></span><span id="renderer-status"><i class="gpu-dot"></i> Initializing</span><span id="render-stats"></span></footer>
+</div>
+<div id="popup-root"></div><div id="toast-root" aria-live="polite"></div><div id="history-panel" hidden></div>
+<dialog id="form-dialog"><form method="dialog"><header><div><span class="eyebrow" id="dialog-eyebrow">VELDRA / MODELING</span><h2 id="dialog-title"></h2></div><button type="button" id="dialog-close" class="icon-button" aria-label="Close dialog">×</button></header><div id="dialog-description"></div><div id="dialog-fields"></div><div id="dialog-error" role="alert"></div><footer><button type="button" id="dialog-cancel">Cancel</button><button id="dialog-submit" type="submit" class="primary">Create</button></footer></form></dialog>
+<input type="file" id="file-input" hidden accept=".veldra,.json,.obj,.stl,.dxf,.weave">
+<script type="module" src="src/app.js"></script>
+</body></html>
