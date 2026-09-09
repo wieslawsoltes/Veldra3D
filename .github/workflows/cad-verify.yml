@@ -1,8 +1,5 @@
-name: CAD kernel verification
+name: CAD, native archives and WebGPU verification
 on:
-  push:
-    branches: [feat/cad-kernel-interchange-drafting]
-    paths-ignore: ['tests/kernel-api-report.txt', 'tests/cad-ci-report.txt']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -15,67 +12,57 @@ jobs:
   cad:
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install pinned open-source CAD modules
+      - name: Install locked replaceable CAD libraries
+        run: npm run vendor:cad
+      - name: Install development browser
         run: |
-          mkdir -p .kernel-deps
-          npm install --prefix .kernel-deps --no-audit --no-fund --ignore-scripts --save-exact replicad@0.23.0 replicad-opencascadejs@0.23.0 rhino3dm@8.32.2
-      - name: Record dependency API and license inventory
-        run: |
-          python3 - <<'PY'
-          import pathlib, json
-          root=pathlib.Path('.kernel-deps/node_modules')
-          lines=[]
-          for name in ['replicad','replicad-opencascadejs','rhino3dm']:
-              p=root/name
-              lines.append('\nPACKAGE '+name+'\n'+(p/'package.json').read_text())
-              lines.extend(str(f.relative_to(p))+' '+str(f.stat().st_size) for f in p.rglob('*') if f.is_file() and f.suffix in ['.wasm','.js','.ts'])
-              for f in p.glob('*LICENSE*'):
-                  lines.append(f.read_text())
-          for f in (root/'replicad-opencascadejs').rglob('*.d.ts'):
-              if 'single' in f.name:
-                  import re
-                  text=f.read_text()
-                  names=['BRepTools','BRepBuilderAPI_MakeFace','BRepBuilderAPI_MakeEdge','BRepBuilderAPI_MakeWire','BRepBuilderAPI_GTransform','BRepAlgoAPI_Splitter','Geom_BSplineSurface','Geom_BSplineCurve','Geom2d_BSplineCurve','TColgp_Array2OfPnt','TColStd_Array2OfReal','BRepFilletAPI_MakeFillet','BRepFilletAPI_MakeChamfer','BRepCheck_Analyzer','IGESControl_Reader','IGESControl_Writer','STEPControl_Reader','STEPControl_Writer','BRep_Builder','BRepGProp','GProp_GProps','BRepOffsetAPI_MakeFilling','ShapeFix_Shape','BRepPrimAPI_MakeTorus']
-                  for name in names:
-                      for match in re.finditer(r'export (?:declare )?(?:class|function) '+re.escape(name)+r'(?:_\d+)?\b[\s\S]*?\n}',text):
-                          lines.append(match.group(0))
-          pathlib.Path('tests/kernel-api-report.txt').write_text('\n'.join(lines))
-          PY
-      - name: Test CAD extension
-        run: |
-          set -o pipefail
-          if [ -f tools/vendor-cad.mjs ]; then node tools/vendor-cad.mjs; fi
-          npm test | tee tests/cad-ci-report.txt
-          if [ -f tests/cad-native.mjs ]; then node tests/cad-native.mjs | tee -a tests/cad-ci-report.txt; fi
-          if [ -f tests/cad-browser.py ]; then
-            python3 -m pip install playwright==1.57.0
-            python3 -m playwright install --with-deps chromium
-            npm run build
-            python3 tests/cad-browser.py | tee -a tests/cad-ci-report.txt
-          fi
-      - name: Retain verification reports
+          python3 -m pip install playwright==1.57.0
+          python3 -m playwright install --with-deps chromium
+          CHROMIUM=$(python3 -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')
+          echo "CHROMIUM=$CHROMIUM" >> "$GITHUB_ENV"
+      - name: Core, actual WASM, native workers, sandbox and required GPU checks
+        run: bash tools/verify-cad.sh
+      - name: Preserve verification evidence including failures
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cad-verification
+          name: cad-verification-${{ github.run_id }}
           path: |
-            tests/*report*
-            tests/cad-*.json
-            docs/cad-*.png
-      - name: Record branch verification evidence
-        if: always() && github.event_name == 'push'
+            tests/*results*
+            tests/*console.txt
+            docs/*.png
+            vendor/manifest.json
+  native-archive-reader:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate JavaScript-native binary and XML files
+        run: node tools/native-archive-fixtures.mjs
+      - name: Read files using the independent public native serialization API
+        shell: pwsh
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add tests/kernel-api-report.txt tests/cad-ci-report.txt
-          if ! git diff --cached --quiet; then
-            git commit -m 'test: record CAD kernel API and verification evidence [skip ci]'
-            git push origin HEAD:${{ github.ref_name }} || true
-          fi
+          Invoke-WebRequest 'https://api.nuget.org/v3-flatcontainer/grasshopper/8.35.26251.13001/grasshopper.8.35.26251.13001.nupkg' -OutFile "$env:RUNNER_TEMP/sdk.zip"
+          Expand-Archive "$env:RUNNER_TEMP/sdk.zip" "$env:RUNNER_TEMP/gh-sdk"
+          Copy-Item "$env:RUNNER_TEMP/gh-sdk/lib/net48/GH_IO.dll" .
+          & "$env:WINDIR/Microsoft.NET/Framework64/v4.0.30319/csc.exe" /nologo /r:GH_IO.dll /r:System.Drawing.dll /r:System.Core.dll tests/NativeArchiveVerify.cs
+          if ($LASTEXITCODE -ne 0) { throw 'Reader test compilation failed' }
+          ./NativeArchiveVerify.exe | Tee-Object tests/native-archive-reader-console.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Independent native archive reader failed' }
+          Remove-Item GH_IO.dll,NativeArchiveVerify.exe
+      - name: Preserve interoperability evidence, never the SDK
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-archive-reader-${{ github.run_id }}
+          path: |
+            tests/native-output/*
+            tests/native-archive-reader-console.txt
