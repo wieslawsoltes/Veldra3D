@@ -1,0 +1,28 @@
+name: Prepare CAD SDK
+on:
+  push:
+    branches: [feat/cad-kernel-interchange-drafting]
+    paths: ['.github/workflows/cad-sdk.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sdk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install exact kernel packages without lifecycle scripts
+        run: |
+          mkdir -p .kernel-deps
+          npm install --prefix .kernel-deps --no-audit --no-fund --ignore-scripts --save-exact replicad@0.23.0 replicad-opencascadejs@0.23.0 rhino3dm@8.32.2
+      - name: Package source and public dependency SDK
+        run: tar --exclude=.git -czf "$RUNNER_TEMP/veldra-kernel-sdk.tgz" .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: veldra-kernel-sdk
+          path: ${{ runner.temp }}/veldra-kernel-sdk.tgz
+          retention-days: 7
