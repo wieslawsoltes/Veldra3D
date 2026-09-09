@@ -1,0 +1,142 @@
+name: Test and deploy Veldra 3D
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pages: write
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Detect initial asset publication
+        id: assets
+        run: |
+          if git ls-files --error-unmatch dist/Veldra3D.html >/dev/null 2>&1; then
+            echo 'initial=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'initial=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Test geometry, topology, graph and interchange
+        run: npm test | tee tests/node-test-results.tap
+      - name: Generate editable examples
+        run: |
+          mkdir -p examples
+          if [ ! -f examples/Canopy.veldra ] || [ ! -f examples/Canopy.weave ] || [ ! -f examples/Surface-laboratory.veldra ]; then
+            node tools/examples.mjs
+          fi
+      - name: Build standalone application
+        run: npm run build
+      - name: Verify initial standalone matches the delivered application
+        if: steps.assets.outputs.initial == 'true'
+        run: echo '23d1ad9692d6aebeec16a846b3475b77a3d23392cbf4a9b1c6f276f4fa34fb85  dist/Veldra3D.html' | sha256sum --check
+      - name: Install development-only browser test tools
+        run: |
+          python3 -m pip install playwright==1.57.0
+          python3 -m playwright install --with-deps chromium
+          CHROMIUM=$(python3 -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')
+          echo "CHROMIUM=$CHROMIUM" >> "$GITHUB_ENV"
+      - name: Test standalone browser application
+        run: |
+          python3 tests/browser_smoke.py --chromium "$CHROMIUM" | tee tests/browser-console.txt
+          cp tests/browser-results.json tests/browser-standalone-results.json
+          cp tests/browser-console.txt tests/browser-standalone-console.txt
+      - name: Stage project-prefixed browser preview
+        run: |
+          npm run build:pages
+          mkdir -p "$RUNNER_TEMP/veldra-preview/Veldra3D"
+          cp -R _site/. "$RUNNER_TEMP/veldra-preview/Veldra3D/"
+      - name: Test module application beneath the Pages project prefix
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory "$RUNNER_TEMP/veldra-preview" > "$RUNNER_TEMP/veldra-http.log" 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8765/Veldra3D/ >/dev/null; then break; fi
+            sleep 1
+          done
+          python3 tests/browser_smoke.py --chromium "$CHROMIUM" --url 'http://127.0.0.1:8765/Veldra3D/?fresh' | tee tests/browser-console.txt
+      - name: Record reproducible CPU benchmarks
+        run: node tools/benchmark.mjs | tee tests/benchmark-console.txt
+      - name: Commit initial generated delivery assets
+        if: steps.assets.outputs.initial == 'true'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add dist examples docs/*.png tests/*.json tests/*console.txt tests/*.tap
+          python3 - <<'PY'
+          import hashlib, pathlib, subprocess
+          paths = subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0')
+          lines = []
+          for name in sorted(set(paths)):
+              path = pathlib.Path(name)
+              if name and name != 'CHECKSUMS.sha256' and path.is_file():
+                  lines.append(hashlib.sha256(path.read_bytes()).hexdigest() + '  ' + name + '\n')
+          pathlib.Path('CHECKSUMS.sha256').write_text(''.join(lines))
+          PY
+          git add CHECKSUMS.sha256
+          git diff --cached --quiet || git commit -m 'build: publish verified standalone app, examples, screenshots and test reports'
+          git push origin HEAD:main
+      - name: Stage final public site with source commit metadata
+        run: SOURCE_COMMIT=$(git rev-parse HEAD) npm run build:pages
+      - name: Use GitHub Actions as the Pages source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TYPE=$(gh api "repos/$GITHUB_REPOSITORY/pages" --jq '.build_type')
+          if [ "$TYPE" != 'workflow' ]; then
+            gh api --method PUT "repos/$GITHUB_REPOSITORY/pages" -f build_type=workflow > /dev/null
+          fi
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload public site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Preserve verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-${{ github.run_id }}
+          retention-days: 30
+          if-no-files-found: warn
+          path: |
+            tests/*results*
+            tests/*console.txt
+            docs/*.png
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
