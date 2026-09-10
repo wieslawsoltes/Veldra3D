@@ -14,7 +14,7 @@
         "errors": [],
         "adapter": null,
         "samples": 4,
-        "ticks": 43
+        "ticks": 60
       }
     },
     {
@@ -25,7 +25,7 @@
     {
       "name": "main thread remains responsive during tracing",
       "passed": true,
-      "detail": 43
+      "detail": 60
     },
     {
       "name": "radiance, AOVs and sample counts are real",
@@ -127,6 +127,6 @@
     "errors": [],
     "adapter": null,
     "samples": 4,
-    "ticks": 43
+    "ticks": 60
   }
 }

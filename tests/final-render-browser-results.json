@@ -19,7 +19,7 @@
           "description": ""
         },
         "samples": 4,
-        "ticks": 117
+        "ticks": 201
       }
     },
     {
@@ -30,7 +30,7 @@
     {
       "name": "main thread remains responsive during tracing",
       "passed": true,
-      "detail": 117
+      "detail": 201
     },
     {
       "name": "radiance, AOVs and sample counts are real",
@@ -137,6 +137,6 @@
       "description": ""
     },
     "samples": 4,
-    "ticks": 117
+    "ticks": 201
   }
 }

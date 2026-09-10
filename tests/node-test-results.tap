@@ -6,585 +6,615 @@ TAP version 13
 # Subtest: vector operations and four-dimensional homogeneous arithmetic
 ok 1 - vector operations and four-dimensional homogeneous arithmetic
   ---
-  duration_ms: 1.061113
+  duration_ms: 1.577374
   type: 'test'
   ...
 # Subtest: affine matrix composition and inverse
 ok 2 - affine matrix composition and inverse
   ---
-  duration_ms: 0.676009
+  duration_ms: 0.789103
   type: 'test'
   ...
 # Subtest: singular matrix rejection
 ok 3 - singular matrix rejection
   ---
-  duration_ms: 0.297937
+  duration_ms: 0.414624
   type: 'test'
   ...
 # Subtest: pivoted scalar and vector linear systems
 ok 4 - pivoted scalar and vector linear systems
   ---
-  duration_ms: 0.306527
+  duration_ms: 0.530109
   type: 'test'
   ...
 # Subtest: ray triangle and parallel box intersection
 ok 5 - ray triangle and parallel box intersection
   ---
-  duration_ms: 0.30795
+  duration_ms: 0.433178
   type: 'test'
   ...
 # Subtest: B-spline basis forms partition of unity
 ok 6 - B-spline basis forms partition of unity
   ---
-  duration_ms: 1.126913
+  duration_ms: 2.104929
   type: 'test'
   ...
 # Subtest: rational circle is geometrically exact
 ok 7 - rational circle is geometrically exact
   ---
-  duration_ms: 36.72504
+  duration_ms: 69.087164
   type: 'test'
   ...
 # Subtest: negative sweep arc has correct endpoints
 ok 8 - negative sweep arc has correct endpoints
   ---
-  duration_ms: 0.290802
+  duration_ms: 0.349132
   type: 'test'
   ...
 # Subtest: analytic curve derivative agrees with centered differences
 ok 9 - analytic curve derivative agrees with centered differences
   ---
-  duration_ms: 0.750828
+  duration_ms: 1.147893
   type: 'test'
   ...
 # Subtest: exact curve knot insertion preserves shape and weights
 ok 10 - exact curve knot insertion preserves shape and weights
   ---
-  duration_ms: 1.544676
+  duration_ms: 2.380673
   type: 'test'
   ...
 # Subtest: exact split preserves both rational subcurves
 ok 11 - exact split preserves both rational subcurves
   ---
-  duration_ms: 0.880464
+  duration_ms: 1.498897
   type: 'test'
   ...
 # Subtest: reversal evaluates the original curve in reverse
 ok 12 - reversal evaluates the original curve in reverse
   ---
-  duration_ms: 0.398664
+  duration_ms: 0.944113
   type: 'test'
   ...
 # Subtest: interpolated curve passes chord-parameterized data
 ok 13 - interpolated curve passes chord-parameterized data
   ---
-  duration_ms: 0.466755
+  duration_ms: 0.700808
   type: 'test'
   ...
 # Subtest: repeated-knot tessellation retains polyline corners
 ok 14 - repeated-knot tessellation retains polyline corners
   ---
-  duration_ms: 0.870553
+  duration_ms: 1.187827
   type: 'test'
   ...
 # Subtest: closest curve point and positive-weight validation
 ok 15 - closest curve point and positive-weight validation
   ---
-  duration_ms: 1.36885
+  duration_ms: 3.202046
   type: 'test'
   ...
 # Subtest: bilinear surface position and analytic partials
 ok 16 - bilinear surface position and analytic partials
   ---
-  duration_ms: 0.546079
+  duration_ms: 0.807457
   type: 'test'
   ...
 # Subtest: rational tensor surface derivatives and endpoints
 ok 17 - rational tensor surface derivatives and endpoints
   ---
-  duration_ms: 0.635261
+  duration_ms: 0.896774
   type: 'test'
   ...
 # Subtest: canopy surface partials match numerical reference
 ok 18 - canopy surface partials match numerical reference
   ---
-  duration_ms: 0.674136
+  duration_ms: 1.031555
   type: 'test'
   ...
 # Subtest: compatible loft exactly interpolates rational section curves
 ok 19 - compatible loft exactly interpolates rational section curves
   ---
-  duration_ms: 2.972174
+  duration_ms: 2.533768
   type: 'test'
   ...
 # Subtest: revolve creates exact circular sections
 ok 20 - revolve creates exact circular sections
   ---
-  duration_ms: 0.637321
+  duration_ms: 0.98588
   type: 'test'
   ...
 # Subtest: surface constructor rejects invalid net and degree
 ok 21 - surface constructor rejects invalid net and degree
   ---
-  duration_ms: 0.132906
+  duration_ms: 0.206044
   type: 'test'
   ...
 # Subtest: box is closed, outward-oriented and has expected volume
 ok 22 - box is closed, outward-oriented and has expected volume
   ---
-  duration_ms: 1.348447
+  duration_ms: 1.978462
   type: 'test'
   ...
 # Subtest: sphere is closed, outward-oriented and has expected volume
 ok 23 - sphere is closed, outward-oriented and has expected volume
   ---
-  duration_ms: 41.511172
+  duration_ms: 47.109229
   type: 'test'
   ...
 # Subtest: cylinder is closed, outward-oriented and has expected volume
 ok 24 - cylinder is closed, outward-oriented and has expected volume
   ---
-  duration_ms: 2.927061
+  duration_ms: 9.659046
   type: 'test'
   ...
 # Subtest: cone is closed, outward-oriented and has expected volume
 ok 25 - cone is closed, outward-oriented and has expected volume
   ---
-  duration_ms: 10.571236
+  duration_ms: 6.180945
   type: 'test'
   ...
 # Subtest: torus is closed, outward-oriented and has expected volume
 ok 26 - torus is closed, outward-oriented and has expected volume
   ---
-  duration_ms: 35.566739
+  duration_ms: 70.403583
   type: 'test'
   ...
 # Subtest: negative-determinant transforms preserve outward winding
 ok 27 - negative-determinant transforms preserve outward winding
   ---
-  duration_ms: 5.170791
+  duration_ms: 5.115176
   type: 'test'
   ...
 # Subtest: extrusion caps and sides agree: reversed=false, z=-3
 ok 28 - extrusion caps and sides agree: reversed=false, z=-3
   ---
-  duration_ms: 1.143371
+  duration_ms: 1.538772
   type: 'test'
   ...
 # Subtest: extrusion caps and sides agree: reversed=false, z=3
 ok 29 - extrusion caps and sides agree: reversed=false, z=3
   ---
-  duration_ms: 0.410706
+  duration_ms: 0.553794
   type: 'test'
   ...
 # Subtest: extrusion caps and sides agree: reversed=true, z=-3
 ok 30 - extrusion caps and sides agree: reversed=true, z=-3
   ---
-  duration_ms: 0.40983
+  duration_ms: 3.549113
   type: 'test'
   ...
 # Subtest: extrusion caps and sides agree: reversed=true, z=3
 ok 31 - extrusion caps and sides agree: reversed=true, z=3
   ---
-  duration_ms: 1.287895
+  duration_ms: 0.719944
   type: 'test'
   ...
 # Subtest: simple concave polygon ear clipping preserves area
 ok 32 - simple concave polygon ear clipping preserves area
   ---
-  duration_ms: 0.333292
+  duration_ms: 0.31609
   type: 'test'
   ...
 # Subtest: nonplanar capping is rejected
 ok 33 - nonplanar capping is rejected
   ---
-  duration_ms: 0.172841
+  duration_ms: 0.161741
   type: 'test'
   ...
 # Subtest: capped straight pipe is closed
 ok 34 - capped straight pipe is closed
   ---
-  duration_ms: 2.601169
+  duration_ms: 10.613433
   type: 'test'
   ...
 # Subtest: surface tessellation has correct topology and normals
 ok 35 - surface tessellation has correct topology and normals
   ---
-  duration_ms: 5.172558
+  duration_ms: 12.441168
   type: 'test'
   ...
 # Subtest: Loop subdivision preserves closed manifold connectivity
 ok 36 - Loop subdivision preserves closed manifold connectivity
   ---
-  duration_ms: 1.758574
+  duration_ms: 9.604925
   type: 'test'
   ...
 # Subtest: welding removes duplicate vertices
 ok 37 - welding removes duplicate vertices
   ---
-  duration_ms: 0.617827
+  duration_ms: 0.741173
   type: 'test'
   ...
 # Subtest: section produces finite segments on requested plane
 ok 38 - section produces finite segments on requested plane
   ---
-  duration_ms: 0.32878
+  duration_ms: 0.47143
   type: 'test'
   ...
 # Subtest: mesh union is watertight with analytic box volume
 ok 39 - mesh union is watertight with analytic box volume
   ---
-  duration_ms: 7.545566
+  duration_ms: 10.607116
   type: 'test'
   ...
 # Subtest: mesh difference is watertight with analytic box volume
 ok 40 - mesh difference is watertight with analytic box volume
   ---
-  duration_ms: 2.323691
+  duration_ms: 6.596635
   type: 'test'
   ...
 # Subtest: mesh intersection is watertight with analytic box volume
 ok 41 - mesh intersection is watertight with analytic box volume
   ---
-  duration_ms: 2.217152
+  duration_ms: 6.999612
   type: 'test'
   ...
 # Subtest: disjoint and equal-solid Boolean cases
 ok 42 - disjoint and equal-solid Boolean cases
   ---
-  duration_ms: 5.028643
+  duration_ms: 7.304352
   type: 'test'
   ...
 # Subtest: Boolean rejects open input
 ok 43 - Boolean rejects open input
   ---
-  duration_ms: 0.25827
+  duration_ms: 0.237763
   type: 'test'
   ...
 # Subtest: BVH returns nearest actual surface hit
 ok 44 - BVH returns nearest actual surface hit
   ---
-  duration_ms: 0.529264
+  duration_ms: 0.577378
   type: 'test'
   ...
 # Subtest: document transactional undo, redo, and cache invalidation
 ok 45 - document transactional undo, redo, and cache invalidation
   ---
-  duration_ms: 3.477851
+  duration_ms: 3.582256
   type: 'test'
   ...
 # Subtest: failed document transaction rolls back all changes
 ok 46 - failed document transaction rolls back all changes
   ---
-  duration_ms: 0.319984
+  duration_ms: 0.397822
   type: 'test'
   ...
 # Subtest: locked layers are excluded from selection
 ok 47 - locked layers are excluded from selection
   ---
-  duration_ms: 0.148556
+  duration_ms: 0.144409
   type: 'test'
   ...
 # Subtest: native document roundtrip and duplicate ID rejection
 ok 48 - native document roundtrip and duplicate ID rejection
   ---
-  duration_ms: 0.65213
+  duration_ms: 0.753647
   type: 'test'
   ...
 # Subtest: data-tree paths, flatten, graft and simplify
 ok 49 - data-tree paths, flatten, graft and simplify
   ---
-  duration_ms: 0.356895
+  duration_ms: 0.47634
   type: 'test'
   ...
 # Subtest: graph longest-list lacing and cached recomputation
 ok 50 - graph longest-list lacing and cached recomputation
   ---
-  duration_ms: 2.705726
+  duration_ms: 14.396247
   type: 'test'
   ...
 # Subtest: graph arithmetic errors propagate and recover
 ok 51 - graph arithmetic errors propagate and recover
   ---
-  duration_ms: 0.678598
+  duration_ms: 0.958729
   type: 'test'
   ...
 # Subtest: cycle and type rejection preserve existing graph
 ok 52 - cycle and type rejection preserve existing graph
   ---
-  duration_ms: 0.286266
+  duration_ms: 0.448627
   type: 'test'
   ...
 # Subtest: three-element point is atomic, point list is laced
 ok 53 - three-element point is atomic, point list is laced
   ---
-  duration_ms: 0.261546
+  duration_ms: 0.476309
   type: 'test'
   ...
 # Subtest: branch-aware graph math preserves tree paths
 ok 54 - branch-aware graph math preserves tree paths
   ---
-  duration_ms: 0.526802
+  duration_ms: 0.949753
   type: 'test'
   ...
 # Subtest: document reference responds only to document revision
 ok 55 - document reference responds only to document revision
   ---
-  duration_ms: 0.259767
+  duration_ms: 0.448718
   type: 'test'
   ...
 # Subtest: graph restore rejects cycles and rolls back atomically
 ok 56 - graph restore rejects cycles and rolls back atomically
   ---
-  duration_ms: 0.683609
+  duration_ms: 1.128657
   type: 'test'
   ...
 # Subtest: demo graph solves, previews and round-trips independently
 ok 57 - demo graph solves, previews and round-trips independently
   ---
-  duration_ms: 174.087534
+  duration_ms: 139.848238
   type: 'test'
   ...
 # Subtest: OBJ mesh and curve roundtrip
 ok 58 - OBJ mesh and curve roundtrip
   ---
-  duration_ms: 1.014157
+  duration_ms: 1.189921
   type: 'test'
   ...
 # Subtest: negative OBJ indices are supported
 ok 59 - negative OBJ indices are supported
   ---
-  duration_ms: 0.105499
+  duration_ms: 0.179225
   type: 'test'
   ...
 # Subtest: binary STL roundtrip
 ok 60 - binary STL roundtrip
   ---
-  duration_ms: 0.704731
+  duration_ms: 0.970731
   type: 'test'
   ...
 # Subtest: ASCII STL roundtrip
 ok 61 - ASCII STL roundtrip
   ---
-  duration_ms: 0.399687
+  duration_ms: 0.552922
   type: 'test'
   ...
 # Subtest: DXF LINE and 3DFACE roundtrip
 ok 62 - DXF LINE and 3DFACE roundtrip
   ---
-  duration_ms: 0.984491
+  duration_ms: 1.315606
   type: 'test'
   ...
 # Subtest: glTF buffers, accessors and Z-up to Y-up conversion
 ok 63 - glTF buffers, accessors and Z-up to Y-up conversion
   ---
-  duration_ms: 0.589348
+  duration_ms: 7.160252
   type: 'test'
   ...
 # Subtest: transformed line collections keep world coordinates
 ok 64 - transformed line collections keep world coordinates
   ---
-  duration_ms: 0.121996
+  duration_ms: 0.178393
   type: 'test'
   ...
 # Subtest: planar offset rejects unsupported nonplanar curves
 ok 65 - planar offset rejects unsupported nonplanar curves
   ---
-  duration_ms: 0.328059
+  duration_ms: 0.491717
   type: 'test'
   ...
 # Subtest: untrusted object identifiers cannot inject markup
 ok 66 - untrusted object identifiers cannot inject markup
   ---
-  duration_ms: 0.21503
+  duration_ms: 0.286946
   type: 'test'
   ...
 # Subtest: import rejects nonfinite, unknown and malformed geometry atomically
 ok 67 - import rejects nonfinite, unknown and malformed geometry atomically
   ---
-  duration_ms: 0.428634
+  duration_ms: 0.569112
   type: 'test'
   ...
 # Subtest: graph loader rejects unsafe IDs and slider strings
 ok 68 - graph loader rejects unsafe IDs and slider strings
   ---
-  duration_ms: 0.172726
+  duration_ms: 0.304568
   type: 'test'
   ...
 # Subtest: graph loader rejects two sources on one input
 ok 69 - graph loader rejects two sources on one input
   ---
-  duration_ms: 0.243729
+  duration_ms: 0.351926
   type: 'test'
   ...
 # Subtest: invalid primitive graph parameters become component errors
 ok 70 - invalid primitive graph parameters become component errors
   ---
-  duration_ms: 0.236911
+  duration_ms: 0.396851
   type: 'test'
   ...
 # Subtest: bake-related graph state follows document undo and redo
 ok 71 - bake-related graph state follows document undo and redo
   ---
-  duration_ms: 0.222978
+  duration_ms: 0.358449
   type: 'test'
   ...
 # Subtest: OBJ concave planar n-gon is triangulated without fan overlap
 ok 72 - OBJ concave planar n-gon is triangulated without fan overlap
   ---
-  duration_ms: 0.166536
+  duration_ms: 0.261338
   type: 'test'
   ...
 # Subtest: self-intersecting polygon caps are rejected
 ok 73 - self-intersecting polygon caps are rejected
   ---
-  duration_ms: 0.07422
+  duration_ms: 0.145351
   type: 'test'
   ...
 # Subtest: inside-out Boolean inputs are rejected explicitly
 ok 74 - inside-out Boolean inputs are rejected explicitly
   ---
-  duration_ms: 0.280431
+  duration_ms: 0.420174
   type: 'test'
   ...
 # Subtest: imported light attributes are normalized before HTML or GPU use
 ok 75 - imported light attributes are normalized before HTML or GPU use
   ---
-  duration_ms: 1.290602
+  duration_ms: 1.922408
   type: 'test'
   ...
 # Subtest: valid shorthand document colors retain their meaning in final renders
 ok 76 - valid shorthand document colors retain their meaning in final renders
   ---
-  duration_ms: 0.280587
+  duration_ms: 0.393554
   type: 'test'
   ...
 # Subtest: final settings bound work and reject oversized output
 ok 77 - final settings bound work and reject oversized output
   ---
-  duration_ms: 2.169334
+  duration_ms: 4.398147
   type: 'test'
   ...
 # Subtest: final geometry is world transformed and does not mutate model
 ok 78 - final geometry is world transformed and does not mutate model
   ---
-  duration_ms: 2.653125
+  duration_ms: 4.940671
   type: 'test'
   ...
 # Subtest: visibility, curves, ground and emissive light extraction
 ok 79 - visibility, curves, ground and emissive light extraction
   ---
-  duration_ms: 0.847917
+  duration_ms: 0.961664
   type: 'test'
   ...
 # Subtest: material attributes and bitmap layouts are linear and bounded
 ok 80 - material attributes and bitmap layouts are linear and bounded
   ---
-  duration_ms: 5.307145
+  duration_ms: 9.680217
   type: 'test'
   ...
 # Subtest: packed BVH matches brute force closest triangle intersections
 ok 81 - packed BVH matches brute force closest triangle intersections
   ---
-  duration_ms: 76.459203
+  duration_ms: 173.121877
   type: 'test'
   ...
 # Subtest: empty BVH is safe and malformed layouts are rejected
 ok 82 - empty BVH is safe and malformed layouts are rejected
   ---
-  duration_ms: 0.595368
+  duration_ms: 0.566688
   type: 'test'
   ...
 # Subtest: camera center, orthographic rays and physical aperture
 ok 83 - camera center, orthographic rays and physical aperture
   ---
-  duration_ms: 3.330981
+  duration_ms: 4.933648
   type: 'test'
   ...
 # Subtest: CPU tracing is deterministic independently of tile order
 ok 84 - CPU tracing is deterministic independently of tile order
   ---
-  duration_ms: 6.584452
+  duration_ms: 14.306109
   type: 'test'
   ...
 # Subtest: single-depth direct lighting is not incorrectly black
 ok 85 - single-depth direct lighting is not incorrectly black
   ---
-  duration_ms: 8.602156
+  duration_ms: 11.138196
   type: 'test'
   ...
 # Subtest: zero illumination returns zero radiance, not fabricated shading
 ok 86 - zero illumination returns zero radiance, not fabricated shading
   ---
-  duration_ms: 3.561539
+  duration_ms: 5.466622
   type: 'test'
   ...
 # Subtest: direct emission works independently of environment and other lights
 ok 87 - direct emission works independently of environment and other lights
   ---
-  duration_ms: 9.445037
+  duration_ms: 7.718796
   type: 'test'
   ...
 # Subtest: glass transmits real environment radiance across closed interfaces
 ok 88 - glass transmits real environment radiance across closed interfaces
   ---
-  duration_ms: 11.885415
+  duration_ms: 12.921707
   type: 'test'
   ...
 # Subtest: HDR environment CDF and solid-angle PDFs integrate to one
 ok 89 - HDR environment CDF and solid-angle PDFs integrate to one
   ---
-  duration_ms: 0.585642
+  duration_ms: 0.832634
   type: 'test'
   ...
 # Subtest: transparent background has sample coverage and retains reflected lighting
 ok 90 - transparent background has sample coverage and retains reflected lighting
   ---
-  duration_ms: 2.603157
+  duration_ms: 4.787214
   type: 'test'
   ...
 # Subtest: Radiance RGBE exports real linear energy and roundtrips RLE
 ok 91 - Radiance RGBE exports real linear energy and roundtrips RLE
   ---
-  duration_ms: 1.779045
+  duration_ms: 2.164309
   type: 'test'
   ...
 # Subtest: HDR area downsampling preserves small bright emitters
 ok 92 - HDR area downsampling preserves small bright emitters
   ---
-  duration_ms: 0.263644
+  duration_ms: 0.274642
   type: 'test'
   ...
 # Subtest: OpenEXR float scanlines have correct channels, offsets and values
 ok 93 - OpenEXR float scanlines have correct channels, offsets and values
   ---
-  duration_ms: 1.179959
+  duration_ms: 1.177498
   type: 'test'
   ...
 # Subtest: tone mapping and developed alpha do not alter raw film
 ok 94 - tone mapping and developed alpha do not alter raw film
   ---
-  duration_ms: 0.614405
+  duration_ms: 0.631078
   type: 'test'
   ...
 # Subtest: scene materials, lights and image settings survive native document roundtrip
 ok 95 - scene materials, lights and image settings survive native document roundtrip
   ---
-  duration_ms: 3.102532
+  duration_ms: 2.835803
   type: 'test'
   ...
 # Subtest: WGSL contains distinct compute and film pipelines with bounded BVH stack
 ok 96 - WGSL contains distinct compute and film pipelines with bounded BVH stack
   ---
-  duration_ms: 0.208354
+  duration_ms: 0.200093
   type: 'test'
   ...
-1..96
-# tests 96
+# Subtest: absent CAD source is unavailable, not a passing compatibility claim
+ok 97 - absent CAD source is unavailable, not a passing compatibility claim
+  ---
+  duration_ms: 5.109986
+  type: 'test'
+  ...
+# Subtest: a partial CAD script upload is rejected
+ok 98 - a partial CAD script upload is rejected
+  ---
+  duration_ms: 1.951392
+  type: 'test'
+  ...
+# Subtest: a CAD package script without its implementation is rejected
+ok 99 - a CAD package script without its implementation is rejected
+  ---
+  duration_ms: 1.327898
+  type: 'test'
+  ...
+# Subtest: a partial native archive verifier is rejected
+ok 100 - a partial native archive verifier is rejected
+  ---
+  duration_ms: 1.640331
+  type: 'test'
+  ...
+# Subtest: complete CAD and native archive entrypoints enable their dedicated test jobs
+ok 101 - complete CAD and native archive entrypoints enable their dedicated test jobs
+  ---
+  duration_ms: 2.717701
+  type: 'test'
+  ...
+1..101
+# tests 101
 # suites 0
-# pass 96
+# pass 101
 # fail 0
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 485.419567
+# duration_ms 634.342076

@@ -1,44 +1,44 @@
 {
-  "timestampUTC": "2026-09-09T12:28:20.882Z",
+  "timestampUTC": "2026-09-10T06:13:30.667Z",
   "runtime": "v22.23.2",
   "platform": "linux",
-  "cpu": "Intel(R) Xeon(R) 6973P-C",
+  "cpu": "AMD EPYC 7763 64-Core Processor",
   "notes": "Warm CPU timings in this container. Not GPU timings, not frame rates, and not a guarantee on other hardware. Browser graph time additionally includes browser/JIT overhead. No external runtime dependencies.",
   "results": [
     {
       "name": "CPU NURBS surface tessellation: 96 × 64 cells (12,288 triangles)",
       "iterations": 15,
-      "medianMs": 6.388555999999994,
-      "minMs": 5.524074000000013,
-      "maxMs": 13.250291000000004
+      "medianMs": 10.573514999999986,
+      "minMs": 9.947606000000007,
+      "maxMs": 19.537616000000014
     },
     {
       "name": "Exact rational circle: 1,001 point evaluations",
       "iterations": 15,
-      "medianMs": 0.5776159999999777,
-      "minMs": 0.3320759999999723,
-      "maxMs": 2.2047450000000026
+      "medianMs": 0.7066189999999892,
+      "minMs": 0.6294149999999945,
+      "maxMs": 3.583798999999999
     },
     {
       "name": "Incremental graph solve: no changed input",
       "iterations": 50,
-      "medianMs": 0.00858299999998735,
-      "minMs": 0.00840299999998706,
-      "maxMs": 0.05705199999999877
+      "medianMs": 0.013604999999984102,
+      "minMs": 0.01339500000000271,
+      "maxMs": 0.06959000000000515
     },
     {
       "name": "Graph update: canopy + 36 ribs + mesh area",
       "iterations": 10,
-      "medianMs": 20.218984999999975,
-      "minMs": 19.137056999999913,
-      "maxMs": 25.53924699999999
+      "medianMs": 32.422766000000024,
+      "minMs": 31.123099000000025,
+      "maxMs": 45.84000000000003
     },
     {
       "name": "Closed overlapping-box mesh Boolean union",
       "iterations": 10,
-      "medianMs": 1.8605649999999514,
-      "minMs": 1.3105740000000878,
-      "maxMs": 2.2096670000000813
+      "medianMs": 2.8293609999998353,
+      "minMs": 1.8304960000000392,
+      "maxMs": 4.886459999999943
     }
   ]
 }

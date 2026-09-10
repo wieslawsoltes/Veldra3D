@@ -1,7 +1,7 @@
 PASS render window and Render menu installed 
-PASS final render completes all samples {'state': 'completed', 'backend': 'CPU path tracer · 3 workers', 'errors': [], 'adapter': None, 'samples': 4, 'ticks': 43}
+PASS final render completes all samples {'state': 'completed', 'backend': 'CPU path tracer · 3 workers', 'errors': [], 'adapter': None, 'samples': 4, 'ticks': 60}
 PASS requested engine executes 
-PASS main thread remains responsive during tracing 43
+PASS main thread remains responsive during tracing 60
 PASS radiance, AOVs and sample counts are real {'width': 96, 'height': 64, 'finite': True, 'minSamples': 4, 'energy': 43269.83835482062, 'surfacePixels': 6099}
 PASS AOV selector changes displayed pass 
 PASS exposure preserves accumulated render 
