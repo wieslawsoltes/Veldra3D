@@ -3,3 +3,6 @@ node_modules/
 __pycache__/
 *.log
 _site/
+.kernel-deps/
+GH_IO.dll
+NativeArchiveVerify.exe

@@ -18,12 +18,18 @@ jobs:
     permissions:
       contents: write
       pages: write
+    outputs:
+      publish: ${{ steps.publication.outputs.publish }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install locked replaceable CAD libraries
+      - name: Reject partial CAD uploads and report absent compatibility source
+        id: inventory
+        run: node tools/check-cad-availability.mjs
+      - name: Install CAD libraries only when the implementation exists
+        if: steps.inventory.outputs.cad == 'true'
         run: npm run vendor:cad
       - name: Install development-only browser tools
         run: |
@@ -31,15 +37,24 @@ jobs:
           python3 -m playwright install --with-deps chromium
           CHROMIUM=$(python3 -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')
           echo "CHROMIUM=$CHROMIUM" >> "$GITHUB_ENV"
-      - name: Verify full modeler, native kernels, sandbox and actual WebGPU
+      - name: Verify the modeler, both builds, CPU final renderer and actual WebGPU
+        run: bash tools/verify-app.sh
+      - name: Verify CAD implementation when present
+        if: steps.inventory.outputs.cad == 'true'
         run: bash tools/verify-cad.sh
-      - name: Commit verified generated distribution, screenshots and reports
+      - name: Guard against publishing an obsolete or non-main checkout
+        id: publication
         run: |
           git fetch origin main
-          if [ "$(git rev-parse origin/main)" != "$GITHUB_SHA" ]; then
-            echo 'Source branch advanced concurrently; do not overwrite newer work with generated assets.'
-            exit 0
+          if [ "$GITHUB_REF" = 'refs/heads/main' ] && [ "$(git rev-parse origin/main)" = "$GITHUB_SHA" ]; then
+            echo 'publish=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'publish=false' >> "$GITHUB_OUTPUT"
+            echo 'Skipping publication: main advanced or this is not a main checkout.' >> "$GITHUB_STEP_SUMMARY"
           fi
+      - name: Commit verified generated distribution, screenshots and reports
+        if: steps.publication.outputs.publish == 'true'
+        run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add dist examples docs/*.png tests/*.json tests/*console.txt tests/*.tap
@@ -54,11 +69,13 @@ jobs:
           pathlib.Path('CHECKSUMS.sha256').write_text(''.join(lines))
           PY
           git add CHECKSUMS.sha256
-          git diff --cached --quiet || git commit -m 'build: refresh verified precision, native interchange and rendering distribution'
+          git diff --cached --quiet || git commit -m 'build: refresh verified application distribution and recovery test evidence'
           git push origin HEAD:main
       - name: Stage public site with source commit metadata
+        if: steps.publication.outputs.publish == 'true'
         run: SOURCE_COMMIT=$(git rev-parse HEAD) npm run build:pages
       - name: Use GitHub Actions as the Pages source
+        if: steps.publication.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -67,7 +84,9 @@ jobs:
             gh api --method PUT "repos/$GITHUB_REPOSITORY/pages" -f build_type=workflow > /dev/null
           fi
       - uses: actions/configure-pages@v5
+        if: steps.publication.outputs.publish == 'true'
       - uses: actions/upload-pages-artifact@v3
+        if: steps.publication.outputs.publish == 'true'
         with:
           path: _site
       - name: Preserve verification evidence including failures
@@ -81,9 +100,9 @@ jobs:
             tests/*results*
             tests/*console.txt
             docs/*.png
-            vendor/manifest.json
   deploy:
     needs: build
+    if: needs.build.outputs.publish == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

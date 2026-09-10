@@ -1,4 +1,4 @@
-name: CAD, native archives and WebGPU verification
+name: Application and CAD recovery verification
 on:
   pull_request:
     branches: [main]
@@ -8,12 +8,64 @@ permissions:
 concurrency:
   group: cad-verification-${{ github.ref }}
   cancel-in-progress: true
+defaults:
+  run:
+    shell: bash
 jobs:
+  recovery-inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      cad: ${{ steps.inventory.outputs.cad }}
+      archive: ${{ steps.inventory.outputs.archive }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Reject partial uploads and report unavailable implementations
+        id: inventory
+        run: node tools/check-cad-availability.mjs
+  application:
+    needs: recovery-inventory
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install development-only browser tools
+        run: |
+          python3 -m pip install playwright==1.57.0
+          python3 -m playwright install --with-deps chromium
+          CHROMIUM=$(python3 -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')
+          echo "CHROMIUM=$CHROMIUM" >> "$GITHUB_ENV"
+      - name: Verify core, both application builds, CPU rendering and actual WebGPU
+        run: bash tools/verify-app.sh
+      - name: Preserve verification evidence including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: application-verification-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            tests/*results*
+            tests/*console.txt
+            docs/*.png
   cad:
+    needs: recovery-inventory
+    if: needs.recovery-inventory.outputs.cad == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -27,7 +79,7 @@ jobs:
           echo "CHROMIUM=$CHROMIUM" >> "$GITHUB_ENV"
       - name: Core, actual WASM, native workers, sandbox and required GPU checks
         run: bash tools/verify-cad.sh
-      - name: Preserve verification evidence including failures
+      - name: Preserve CAD verification evidence including failures
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -38,10 +90,14 @@ jobs:
             docs/*.png
             vendor/manifest.json
   native-archive-reader:
+    needs: recovery-inventory
+    if: needs.recovery-inventory.outputs.archive == 'true'
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
