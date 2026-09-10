@@ -1,0 +1,73 @@
+name: Import verified CAD source
+on:
+  push:
+    branches: [feat/cad-kernel-interchange-drafting]
+    paths: ['_bootstrap/manifest.json']
+permissions:
+  contents: write
+concurrency:
+  group: cad-source-import
+  cancel-in-progress: false
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/cad-kernel-interchange-drafting
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify compressed source transport
+        run: |
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';import crypto from 'node:crypto';import zlib from 'node:zlib';
+          const m=JSON.parse(fs.readFileSync('_bootstrap/manifest.json','utf8'));
+          const encoded=m.parts.map(p=>{if(!/^part-\d+\.txt$/.test(p))throw Error('Unsafe part name');return fs.readFileSync('_bootstrap/'+p,'utf8').trim()}).join('');
+          const bytes=Buffer.from(encoded,'base64');
+          if(crypto.createHash('sha256').update(bytes).digest('hex')!==m.sha256)throw Error('Source archive checksum mismatch');
+          fs.writeFileSync(process.env.RUNNER_TEMP+'/cad-source.json',zlib.brotliDecompressSync(bytes));
+          JS
+      - name: Validate every preimage and postimage before applying any file
+        run: |
+          python3 - <<'PY'
+          import pathlib,json,hashlib,base64,os
+          delta=json.loads(pathlib.Path(os.environ['RUNNER_TEMP'],'cad-source.json').read_text())
+          outputs=[]
+          for f in delta['files']:
+              p=pathlib.Path(f['path'])
+              assert not p.is_absolute() and '..' not in p.parts and p.parts[0] not in ('.git','.github','_bootstrap','vendor','.kernel-deps')
+              before=p.read_bytes() if p.is_file() else None
+              actual=hashlib.sha256(before).hexdigest() if before is not None else None
+              assert actual==f['before'], 'Source advanced: '+str(p)
+              if 'text' in f: after=f['text'].encode()
+              elif 'data' in f: after=base64.b64decode(f['data'],validate=True)
+              else:
+                  lines=before.decode().splitlines(keepends=True)
+                  for a,b,replacement in reversed(f['edits']): lines[a:b]=replacement
+                  after=''.join(lines).encode()
+              assert hashlib.sha256(after).hexdigest()==f['after'], 'Postimage mismatch: '+str(p)
+              outputs.append((p,after))
+          for p,after in outputs:
+              p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(after)
+          print('Verified and applied',len(outputs),'source files')
+          PY
+      - name: Verify core and regenerate complete standalone JavaScript
+        run: |
+          npm test
+          npm run build
+      - name: Commit source atomically and remove transport payload
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm -r _bootstrap
+          git add .
+          python3 - <<'PY'
+          import hashlib,pathlib,subprocess
+          paths=subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
+          pathlib.Path('CHECKSUMS.sha256').write_text(''.join(hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()+'  '+p+'\n' for p in sorted(paths) if p and p!='CHECKSUMS.sha256' and pathlib.Path(p).is_file()))
+          PY
+          git add CHECKSUMS.sha256
+          git commit -m 'feat: integrate exact CAD kernels, native archives, workers, extensions and associative drawings'
+          git push origin HEAD:feat/cad-kernel-interchange-drafting

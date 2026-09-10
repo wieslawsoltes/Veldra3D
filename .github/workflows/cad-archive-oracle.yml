@@ -1,0 +1,79 @@
+name: Native archive interoperability fixtures
+on:
+  push:
+    branches: [feat/cad-kernel-interchange-drafting]
+    paths: ['.github/workflows/cad-archive-oracle.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  oracle:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Obtain development-only public serialization SDK
+        shell: pwsh
+        run: |
+          Invoke-WebRequest 'https://api.nuget.org/v3-flatcontainer/grasshopper/8.35.26251.13001/grasshopper.8.35.26251.13001.nupkg' -OutFile sdk.zip
+          Expand-Archive sdk.zip sdk
+          Copy-Item sdk/lib/net48/GH_IO.dll .
+          New-Item -ItemType Directory fixtures
+      - name: Exercise every public archive value writer
+        shell: pwsh
+        run: |
+          @'
+          using System;
+          using System.IO;
+          using System.Linq;
+          using System.Drawing;
+          using System.Reflection;
+          using GH_IO.Serialization;
+          using GH_IO.Types;
+          class Oracle {
+            static object Sample(Type t, int depth=0) {
+              if(t==typeof(bool)) return true;
+              if(t==typeof(byte)) return (byte)203;
+              if(t==typeof(int)) return -1234;
+              if(t==typeof(long)) return -9007199254740993L;
+              if(t==typeof(float)) return 1.25f;
+              if(t==typeof(double)) return -0.125;
+              if(t==typeof(decimal)) return -123456789.0123m;
+              if(t==typeof(string)) return "Veldra <&> \u0141\u03a9\ud83c\udf10";
+              if(t==typeof(Guid)) return new Guid("12345678-1234-5678-9abc-0123456789ab");
+              if(t==typeof(DateTime)) return new DateTime(638930000000000007L,DateTimeKind.Utc);
+              if(t==typeof(byte[])) return new byte[]{0,1,127,128,255};
+              if(t==typeof(double[])) return new double[]{1.25,-2.5,3e-9};
+              if(t==typeof(Point)) return new Point(-11,23);
+              if(t==typeof(PointF)) return new PointF(-1.25f,2.5f);
+              if(t==typeof(Size)) return new Size(37,49);
+              if(t==typeof(SizeF)) return new SizeF(3.75f,4.25f);
+              if(t==typeof(Rectangle)) return new Rectangle(-11,23,37,49);
+              if(t==typeof(RectangleF)) return new RectangleF(-1.25f,2.5f,3.75f,4.25f);
+              if(t==typeof(Color)) return Color.FromArgb(123,17,42,201);
+              if(t==typeof(Bitmap)) {var b=new Bitmap(2,3);b.SetPixel(0,0,Color.Red);return b;}
+              if(t.IsValueType && depth<3) {object v=Activator.CreateInstance(t);int i=1; foreach(var f in t.GetFields(BindingFlags.Public|BindingFlags.Instance)) {Console.WriteLine(t.Name+" FIELD "+f.Name+" "+f.FieldType.Name);f.SetValue(v,f.FieldType==typeof(double)?(object)(i++*1.25):Sample(f.FieldType,depth+1));}return v;}
+              throw new Exception("No sample for "+t.FullName);
+            }
+            static void Main() {
+              foreach(var value in Enum.GetValues(typeof(GH_Types))) Console.WriteLine("TYPE "+(int)value+" "+value);
+              var a=new GH_Archive();var w=a.CreateTopLevelNode("Fixture");
+              foreach(var m in typeof(GH_IWriter).GetMethods().Where(m=>m.Name.StartsWith("Set")&&m.GetParameters().Length==2&&m.GetParameters()[0].ParameterType==typeof(string))) {
+                try{m.Invoke(w,new object[]{m.Name,Sample(m.GetParameters()[1].ParameterType)});Console.WriteLine("PASS "+m.Name);}catch(Exception e){Console.WriteLine("FAIL "+m.Name+" "+e.GetBaseException().Message);throw;}
+              }
+              w.CreateChunk("Nested",2).SetInt32("Indexed",4,77);
+              File.WriteAllBytes("fixtures/all-types.gh",a.Serialize_Binary());File.WriteAllText("fixtures/all-types.ghx",a.Serialize_Xml());
+              var b=new GH_Archive();if(!b.Deserialize_Binary(File.ReadAllBytes("fixtures/all-types.gh")))throw new Exception("Oracle cannot read its archive");
+            }
+          }
+          '@ | Set-Content Oracle.cs
+          & "$env:WINDIR/Microsoft.NET/Framework64/v4.0.30319/csc.exe" /nologo /r:GH_IO.dll /r:System.Drawing.dll /r:System.Core.dll Oracle.cs
+          if ($LASTEXITCODE -ne 0) { throw 'C# compilation failed' }
+          ./Oracle.exe | Tee-Object fixtures/public-api-report.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Native serialization failed' }
+          Copy-Item Oracle.cs fixtures
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-archive-oracle
+          path: fixtures
+          retention-days: 7
